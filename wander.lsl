@@ -194,6 +194,7 @@ default {
     integer hits = obstacle();
     //llSay(0, (string) hits);
     if (hits == 4 || hits == 0) return; // step or floor or nothing
+    //llSay(0,(string) hits);
     if (llDetectedType(0) & AGENT) {
       llMessageLinked(LINK_THIS, BUMP, (string) llDetectedPos(0), llDetectedKey(0));
     } else {
