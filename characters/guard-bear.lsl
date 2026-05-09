@@ -32,7 +32,7 @@ default {
 	animation = "Default";
 	break;
       }
-      case 0: {
+      case 1: {
 	animation = "Punch";
 	break;
       }
