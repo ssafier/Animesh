@@ -9,6 +9,7 @@ integer g_running;
 default {
   state_entry() {
     g_running = FALSE;
+    llSetLinkPrimitiveParamsFast(2,[PRIM_SIZE, <0.76975, 3.62342, 3.68901>]);
   }
   touch_start(integer x) {
     if (g_running) 
@@ -20,6 +21,7 @@ default {
   link_message(integer from, integer chan, string msg, key xyzzy) {
     switch(chan) {
     case WanderDone: {
+      llSetLinkPrimitiveParamsFast(2,[PRIM_SIZE, <0.76975, 3.62342, 3.68901>]);
       integer rand = (integer) (llFrand(0.75) + 0.5);
       string animation;
       switch(rand) {

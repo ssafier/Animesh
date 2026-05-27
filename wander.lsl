@@ -3,7 +3,9 @@
 
 #include "include/animesh.h"
 
+#ifndef STEP
 #define STEP 1.4
+#endif
 
 vector g_min;
 vector g_max;
@@ -21,6 +23,7 @@ float g_tau;
 // Variables for stuck detection
 vector g_last_pos;
 integer g_stuck_count = 0;
+integer g_wedged_count = 0;
 
 integer obstacle() {
   integer hits = 0;
@@ -153,9 +156,16 @@ default {
     
     // 1. Stuck Detection (Are we walking into a wall without triggering a collision?)
     if (llVecDist(pos, g_last_pos) < 0.2) {
+      //llSay(0, "stuck "+(string) g_stuck_count);
       g_stuck_count++;
       if (g_stuck_count > 3) { // Stuck for ~3 seconds
+	g_wedged_count++;
 	llStopMoveToTarget();
+	if (g_wedged_count > 3) {
+	  //llSay(0, "wedged");
+	  g_wedged_count = 0;
+	  llMoveToTarget(g_home, 0.1);
+	}
 	if (g_pick_next_target) {
 	  pick_new_target();
 	  g_stuck_count = 0;
@@ -166,13 +176,13 @@ default {
 	return;
       }
     } else {
-      g_stuck_count = 0;
+      g_wedged_count = g_stuck_count = 0;      
     }
     g_last_pos = pos;
 
     // 2. Check horizontal distance to target
     float dist = llVecDist(<pos.x, pos.y, 0.0>, <g_target.x, g_target.y, 0.0>);
-        
+
     if (dist < 1.0) {
       // Reached destination, pick a new spot
       llStopMoveToTarget();
@@ -198,7 +208,7 @@ default {
     if (llDetectedType(0) & AGENT) {
       llMessageLinked(LINK_THIS, BUMP, (string) llDetectedPos(0), llDetectedKey(0));
     } else {
-      g_stuck_count = 0; 
+      if (g_stuck_count > 3) g_wedged_count = g_stuck_count = 0; 
       llStopMoveToTarget();
       if (g_pick_next_target) {
 	pick_new_target();
