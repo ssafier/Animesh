@@ -134,16 +134,6 @@ string getExpression(string anim) {
     ExprTimer = 0.5;
   }
   
-  list parms = llParseString2List(anim, ["::"], []);
-  anim = (string) parms[0];
-  integer exprIx = (integer) parms[1];
-  Expression = (string) Expressions[exprIx];
-  ExprTimer  = (float) parms[2];
-
-  if (ExprTimer <= 0.0) {
-    ExprTimer = 0.5;
-  }
-  
   return anim;
 }
 
@@ -173,7 +163,6 @@ state s_on {
     if (an == "PRIMTOUCH") {
       return;
     }
-        
     if (num != ch) return;
     an = getExpression(an);     // get & save expression, and return unadorned anim
     // MODIFIED: If this is an animesh character (BallNum > 0), send instructions over chat
@@ -234,7 +223,17 @@ state s_on {
       }
       return;
     }
-    if (BallNum > 0) return;
+    if (BallNum > 0) {
+      integer x = llSubStringIndex(str, "|");
+      if (x != -1) {
+	string s = llGetSubString(str, 0, x - 1);
+	if (s == "PROB") {
+	  //llSay(0, "here: "+str);
+	  llMessageLinked(LINK_THIS, -45679, llGetSubString(str, x+1, -1), id);
+	}
+      }
+      return;
+    }
     //avatar (sit) or NULL_KEY (stand up)
     if ((key) str == NULL_KEY) {
       if (enabledp && avatar != NULL_KEY) {

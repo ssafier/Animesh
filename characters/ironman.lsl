@@ -16,7 +16,7 @@ default {
     if (g_running) 
       llMessageLinked(LINK_THIS, ResetWanderTimers, "", llGetKey());
     else
-      llMessageLinked(LINK_THIS, WanderForTime, ((string)(15+llFrand(45))) + "|"+START+"Slow", llGetKey());
+      llMessageLinked(LINK_THIS, WanderForTime, "|" + ((string)(15+llFrand(45))) + "|"+START+"Slow", llGetKey());
     g_running = !g_running;
   }
   link_message(integer from, integer chan, string msg, key xyzzy) {
@@ -47,7 +47,7 @@ default {
       llStopObjectAnimation(animation);
       string speed;
       if (llFrand(1.0) >= 0.5) speed = "Slow"; else speed = "Fast";
-      llMessageLinked(LINK_THIS, WanderForTime, ((string)(15+llFrand(45))) + "|"+START + speed, llGetKey());
+      llMessageLinked(LINK_THIS, WanderForTime, "|" + ((string)(15+llFrand(45))) + "|"+START + speed, llGetKey());
       break;
     }
     case BUMP: {

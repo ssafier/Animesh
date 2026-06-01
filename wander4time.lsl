@@ -1,7 +1,11 @@
 #include "include/animesh.h"
+#include "include/controlstack.h"
 
 default {
   link_message(integer from, integer chan, string msg, key xyzzy) {
+    if (chan != STOP &&
+	chan != GOTO) return;
+    GET_CONTROL;
     switch(chan) {
     case ResetWanderTimers: {
       llSetTimerEvent(0);
@@ -9,14 +13,16 @@ default {
       break;
     }
     case WanderForTime: {
-      integer index = llSubStringIndex(msg,"|");
-      float t = (float) llGetSubString(msg, 0, index - 1);
+      string temp;
+      POP(temp);
+      float t = (float) temp;
       llSetTimerEvent(t);
-      llMessageLinked(LINK_THIS, WANDER, llGetSubString(msg, index + 1, -1), xyzzy);
+      PUSH_NEXT(WANDER)
       break;
     }
     default: break;
     }
+    NEXT_STATE;
   }
   timer() {
     llSetTimerEvent(0);

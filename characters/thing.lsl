@@ -13,9 +13,9 @@ default {
   touch_start(integer x) {
     if (llDetectedKey(0) != (key) "c4814bb6-38d1-4e6b-9ccb-51a3b0ef0ded") return;
     if (g_running) {
-      llMessageLinked(LINK_THIS, ResetWanderTimers, "", llGetKey());
+      llMessageLinked(LINK_THIS, ResetWanderTimers, "|", llGetKey());
     } else {
-      llMessageLinked(LINK_THIS, WanderForTime, ((string)(15+llFrand(45))) + "|"+START+"Slow", llGetKey());
+      llMessageLinked(LINK_THIS, WanderForTime, "|" + ((string)(15+llFrand(45))) + "|"+START+"Slow", llGetKey());
     }
     g_running = !g_running;
   }
@@ -47,7 +47,7 @@ default {
       llStopObjectAnimation(animation);
       string speed;
       if (llFrand(1.0) >= 0.5) speed = "Slow"; else speed = "Fast";
-      llMessageLinked(LINK_THIS, WanderForTime, ((string)(15+llFrand(45))) + "|"+START + speed, llGetKey());
+      llMessageLinked(LINK_THIS, WanderForTime, "|" + ((string)(15+llFrand(45))) + "|"+START + speed, llGetKey());
       break;
     }
     case BUMP: {

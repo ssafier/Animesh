@@ -18,10 +18,10 @@ string  Pose;                   // current pose name
 list    PoseData;               // data for this pose
 string  LastPoseOrder;          // ball order for last swap
 
-integer Offset;                 // offset to avoid SWAP button seeming to do nothing.
-
 integer ChatChan;               // chan for talking to object
 integer SwapIx;
+
+float probability_of_win;
 
 init()
 {
@@ -75,15 +75,9 @@ handle_swap(integer swapping) {
     if (count == 0) {
         return;
     }
-    integer ix = (SwapIx + Offset) % count;
+    integer ix = SwapIx;
     string data = llList2String(PoseData, ix);
-    if (swapping && (data == LastPoseOrder)) {
-        ++Offset;
-        ix = (SwapIx + Offset) % count;
-        data = llList2String(PoseData, ix);
-    }
     LastPoseOrder = data;
-    //llSay(0, "ORDER: " + data + ", SwapIx: " + (string) SwapIx + ", Offset: " + (string) Offset + ", ix: " + (string) ix);
     llMessageLinked(LINK_THIS, 0, "ORDER", data);
 }
 
@@ -95,8 +89,7 @@ string  ConfigCardName;     // name of card being read
 integer ConfigCardIndex;    // index of next card to read
 key     ConfigQueryId;
 
-integer next_card()
-{
+integer next_card() {
     if (ConfigCardIndex >= llGetListLength(ConfigCards)) {
         ConfigCards = [];
         return (FALSE);
@@ -168,7 +161,7 @@ state re_on
 
 state on {
     state_entry() {
-        init();
+      init();
     }
 
     on_rez(integer arg) {
@@ -176,15 +169,19 @@ state on {
     }
     
     link_message(integer from, integer num, string str, key dkey) {
-
+	if (num == -45679) {
+	  probability_of_win = (float) str;
+	  //	  llSay(0, "win "+str);
+	  return;
+	}
+      
         if (str == "PRIMTOUCH" || num < 0) {
             return;
         }
         if (num == 1 && str == "STOP") {
-            Offset = SwapIx = 0;
+            SwapIx = 0;
             return;
         }
-
         if (num == 0) {
             if (str == "POSEB") {
                 set_pose((string)dkey);
@@ -193,9 +190,25 @@ state on {
 	      integer count = llGetListLength(PoseData);
 	      if (count > 0) {
 		// Pick a random index based on available swap configurations
-		SwapIx = (integer)llFrand(count); 
-		handle_swap(TRUE);
-		llSleep(0.01);
+		float w = llFrand(1.0);
+		//llSay(0,(string)w +" "+ (string) probability_of_win);
+		if (w > probability_of_win) {
+		  if (SwapIx == 1) {
+		    SwapIx = 0;
+		    handle_swap(TRUE);
+		    llSleep(0.01);
+		  } else {
+		    handle_swap(FALSE);
+		  }
+		} else {
+		  if (SwapIx == 0) {
+		    SwapIx = 1;
+		    handle_swap(TRUE);
+		    llSleep(0.01);
+		  } else {
+		    handle_swap(FALSE);
+		  }
+		}
 		llMessageLinked(LINK_THIS, -3031963, LastPoseOrder,NULL_KEY);
 	      } else {
 		handle_swap(FALSE);

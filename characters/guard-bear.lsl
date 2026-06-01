@@ -18,7 +18,7 @@ default {
     if (g_running) 
       llMessageLinked(LINK_THIS, ResetWanderTimers, "", llGetKey());
     else
-      llMessageLinked(LINK_THIS, WanderForTime, "10|"+START, llGetKey());
+      llMessageLinked(LINK_THIS, WanderForTime, "|10|"+START, llGetKey());
     g_running = !g_running;
   }
   link_message(integer from, integer chan, string msg, key xyzzy) {
@@ -44,7 +44,7 @@ default {
       llStartObjectAnimation(animation);
       llSleep(5);
       llStopObjectAnimation(animation);
-      llMessageLinked(LINK_THIS, WanderForTime, "10|"+START, llGetKey());
+      llMessageLinked(LINK_THIS, WanderForTime, "|10|"+START, llGetKey());
       break;
     }
     case BUMP: {
@@ -82,7 +82,7 @@ default {
 	break;
       }
       }
-      llMessageLinked(LINK_THIS, WanderForTime, "10|"+START, llGetKey());
+      llMessageLinked(LINK_THIS, WanderForTime, "|10|"+START, llGetKey());
       break;
     }
     default: break;

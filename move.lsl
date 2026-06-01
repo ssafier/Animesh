@@ -1,4 +1,4 @@
-// LSL Script for an Animesh character that wanders within a  region
+// LSL Script for an Animesh character that moves within a  region
 // and actively dodges obstacles using physics collisions.
 
 #include "include/animesh.h"
@@ -91,7 +91,7 @@ default {
 
   link_message(integer from, integer chan, string msg, key xyzzy) {
     if (chan != STOP &&
-	chan != WANDER) return;
+	chan != GOTO) return;
     GET_CONTROL;
     switch(chan) {
     case STOP: {
@@ -104,42 +104,14 @@ default {
       llSetTimerEvent(0);
       break;
     }
-    case WANDER: {
+    case GOTO: {
+      g_moving = TRUE;
       string temp;
       POP(temp);
-      vector p1 = (vector) temp;
-      POP(temp);
-      vector p2 = (vector) temp;
-      g_moving = TRUE;
-      POP(g_animation);
-      if (p1.x < p2.x) {
-	g_min.x = p1.x;
-	g_max.x = p2.x;
-      } else {
-	g_min.x = p2.x;
-	g_max.x = p1.x;
-      }
-      if (p1.y < p2.y) {
-	g_min.y = p1.y;
-	g_max.y = p2.y;
-      } else {
-	g_min.y = p2.y;
-	g_max.y = p1.y;
-      }
-      if (p1.z < p2.z) {
-	g_min.z = p1.z;
-	g_max.z = p2.z;
-      } else {
-	g_min.z = p2.z;
-	g_max.z = p1.z;
-      }
-      g_last_pos = llGetPos();
-      g_home = (g_min + g_max) / 2.0;
-      llStartObjectAnimation(g_animation);
-      llStopMoveToTarget();
-      pick_new_target();
-      // Use a timer to check progress and repath
-      llSetTimerEvent(1.0);
+      g_target = (vector) tmp;
+      g_tau = llVecDist(llGetPos(), g_target) / STEP;
+      llSetTimerEvent(1);
+      move_to_target();
       break;
     }
     default:  break;
@@ -161,8 +133,8 @@ default {
 	  g_wedged_count = 0;
 	  llMoveToTarget(g_home, 0.1);
 	}
-	pick_new_target();
-	g_stuck_count = 0;
+	g_moving = FALSE;
+	llMessageLinked(LINK_THIS, COLLISION, (string) llGetPos(), NULL_KEY);
 	return;
       }
     } else {
@@ -176,7 +148,8 @@ default {
     if (dist < 1.0) {
       // Reached destination, pick a new spot
       llStopMoveToTarget();
-      pick_new_target();
+      g_moving = FALSE;
+      llMessageLinked(LINK_THIS, MoveDone, "", llGetKey());
     } else  {
       // Continuously update movement to adapt to terrain slopes
       g_tau = g_tau - 1;
@@ -195,7 +168,8 @@ default {
     } else {
       if (g_stuck_count > 3) g_wedged_count = g_stuck_count = 0; 
       llStopMoveToTarget();
-      pick_new_target();
+      g_moving = FALSE;
+      llMessageLinked(LINK_THIS, COLLISION, (string) llDetectedPos(0), llDetectedKey(0));
     }
     NEXT_STATE;
   }

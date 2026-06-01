@@ -1,17 +1,6 @@
-// MLPV2 Version 2 by Learjeff Innis.  Based on
-// MLP MULTI-LOVE-POSE V1.2 - Copyright (c) 2006, by Miffy Fluffy (BSD License)
+#include "include/animesh.h"
+#include "include/controlstack.h"
 
-// To make ball phantom, put "*" as the first character in the ball's description
-// or just make the ball phantom (which really works better for HUDs).
-// The rest of the description, if any, is used for the sit pie menu and floating text.
-// To make this take effect, use STOP to unrez the balls, and then select any pose.
-
-// v2.4j - cancel old listen on rez
-// v2.4m - handle control keys! To enable, begin ~ball description with a plus sign ("+"), following "*" if any.
-// v2.4p - page up & down to enable/disable adjustment
-// v2.4x - moved SitTarget to top.
-
-#define RELAY_CHANNEL   -1812221819
 #define log(x) debug(x)
 #ifndef debug
 #define debug(x)
@@ -22,6 +11,7 @@ string pastAnimation;
 string targetAnimation;
 string pastTargetAnim;
 key target_avi  = NULL_KEY;
+integer target_strength;
 vector size;
 
 vector  SitTarget       = <0.,0.,.1>;   // Change this to <0.,0.,-.15> or lower, to raise balls above cushion
@@ -216,15 +206,34 @@ state get_target {
       case "SITTER": {
 	if ((target_avi = (key)(string)ldata[1]) != NULL_KEY) {
 	  llListenRemove(ListenHandle);
-	  llSay(0, "O.K. "+llGetDisplayName(target_avi)+", let's rumble.");
 	  llSetTimerEvent(0);
-	  state wrestling;
+	  llMessageLinked(LINK_THIS, GET_STRENGTH, (string) RETURN_MAX_STRENGTH + "|", target_avi);
 	}
 	break;
       }
       default: break;
       }
     }
+  }
+  link_message(integer from, integer chan, string msg, key xyzzy) {
+    if (chan != RETURN_MAX_STRENGTH) return;
+    GET_CONTROL;
+    string temp;
+    POP(temp);
+    target_strength = (integer) temp;
+    float prob = ProbabilityWin(target_strength, MY_STRENGTH);
+    llSay(Chan+8,"PROB|"+(string) prob);
+    list intro;
+    if (prob > 0.9) {
+      intro = absolute;
+    } else if (prob > 0.33) {
+      intro = equal;
+    } else {
+      intro = weaker;
+    }
+    llSay(0, (string)intro[(integer) llFrand(llGetListLength(intro))]);
+    llSay(0, "O.K. "+llGetDisplayName(target_avi)+", let's rumble.");
+    state wrestling;
   }
   timer() {
     llSay(0, "Guess not.");
@@ -333,6 +342,7 @@ state wrestling {
 	key new_target = (key)(string)ldata[1];
 	if (target_avi != new_target && new_target == NULL_KEY) {
 	  target_avi = NULL_KEY;
+	  target_strength = 0;
 	  llListenRemove(ListenHandle);
 	  llStopObjectAnimation(currentAnimation);
 	  llSetTimerEvent(0);

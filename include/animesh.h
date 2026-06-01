@@ -1,3 +1,30 @@
+#define CONTROLLER_CHAN -88888
+#define CONTROLLER_KEY NULL_KEY
+
+// Command Prefixes
+#define CMD_ACTION 1
+#define CMD_ERROR  2
+#define CMD_STATUS 3
+
+// Atomic Actions
+#define ACT_IDLE 0
+#define ACT_SIT  1
+#define ACT_WALK 2
+#define ACT_TALK 3
+#define ACT_WANDER 4
+#define ACT_POSE 5
+#define ACT_WRESTLE 6
+
+
+// Error Types
+#define ERR_COLLISION 1
+#define ERR_STUCK     2
+
+// Object Types (for collisions)
+#define TYPE_OBJECT 1
+#define TYPE_AVATAR 2
+#define TYPE_ACTIVE 3
+
 #define STOP 99
 #define WANDER 100
 #define WanderForTime 101
@@ -8,7 +35,7 @@
 #define COLLISION 106
 #define PATH 107
 #define PathDone 108
-
+#define MoveDone 109
 #define CALL 110
 #define ARRIVED 111
 #define SIT 112
@@ -20,3 +47,9 @@
 #define CANCEL_SCAN 122
 
 #define DEFAULT_SIT_CHANNEL -91170
+
+// UTILS
+#define GET_STRENGTH 1000
+#define RETURN_MAX_STRENGTH 1001
+
+#define ProbabilityWin(avistr, astr) (1.0/(1.0 + llPow(25.0, ((avistr) - (astr))/10000.0)))
