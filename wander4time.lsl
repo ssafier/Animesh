@@ -9,7 +9,7 @@ default {
     switch(chan) {
     case ResetWanderTimers: {
       llSetTimerEvent(0);
-      llMessageLinked(LINK_THIS, STOP, "", xyzzy);
+      llMessageLinked(LINK_THIS, STOP, "|", xyzzy);
       break;
     }
     case WanderForTime: {
@@ -26,7 +26,6 @@ default {
   }
   timer() {
     llSetTimerEvent(0);
-    llMessageLinked(LINK_THIS, STOP, "", llGetKey());
-    llMessageLinked(LINK_THIS, WanderDone, "", llGetKey());
+    llMessageLinked(LINK_THIS, STOP,(string) WanderDone +  "|", llGetKey());
   }
 }

@@ -144,6 +144,7 @@ default {
     }
     default:  break;
     }
+    NEXT_STATE;
   }
     
   timer() {
