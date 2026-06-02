@@ -197,6 +197,5 @@ default {
       llStopMoveToTarget();
       pick_new_target();
     }
-    NEXT_STATE;
   }
 }

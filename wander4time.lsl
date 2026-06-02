@@ -3,8 +3,8 @@
 
 default {
   link_message(integer from, integer chan, string msg, key xyzzy) {
-    if (chan != STOP &&
-	chan != GOTO) return;
+    if (chan != ResetWanderTimers &&
+	chan != WanderForTime) return;
     GET_CONTROL;
     switch(chan) {
     case ResetWanderTimers: {
@@ -17,7 +17,7 @@ default {
       POP(temp);
       float t = (float) temp;
       llSetTimerEvent(t);
-      PUSH_NEXT(WANDER)
+      UPDATE_NEXT(WANDER);
       break;
     }
     default: break;
