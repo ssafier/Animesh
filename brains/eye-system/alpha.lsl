@@ -146,7 +146,7 @@ setAlpha(list strengths, list newbies) {
       ARRIVAL_RLV;
     }
 
-    string power = getPower((integer) llJsonGetValue((string) strengths[0], ["sml"]), name);
+    string power = getPower((integer) strengths[0], name);
     integer i = 3;
     integer rank = 2;
     if (departed) {
@@ -181,12 +181,21 @@ setAlpha(list strengths, list newbies) {
     for (j = 1; j < len; ++j) {
       integer i = llListFindList(strengths, [(string) newbies[j]]);
       if (i == -1) llOwnerSay("not in current");
-      string power = getPower((integer) llJsonGetValue((string) strengths[i -1], ["sml"]),
-			      llGetDisplayName((key) newbies[j]));
+      string power = getPower((integer) strengths[i -1], llGetDisplayName((key) newbies[j]));
       llRegionSayTo((key) newbies[i], 0, power);
       ARRIVAL_RLV;
     }
   }
+}
+
+integer getStrength(string json) {
+  integer sml = (integer) llJsonGetValue(json, ["sml"]);
+  string sps = llJsonGetValue(json,["sps"]);
+  if (sps != "" && llStringLength(sps) > 3) {
+    integer total = (integer) llJsonGetValue(sps,["total"]);
+    if (total > sml) sml = total;
+  }
+  return sml;
 }
 
 default {
@@ -214,9 +223,15 @@ default {
 
       debug("current " + current + " new " + newbies + " departed " + departed);
       
+      list strengths = llParseString2List(current,["+"],[]);
+      integer i;
+      for(i = llGetListLength(strengths) - 2; i >= 0; i -= 2) {
+	strengths = llListReplaceList(strengths, [getStrength((string) strengths[i])], i, i);
+      }
+      strengths = llListSortStrided(strengths, 2, 0, FALSE);
+      //llSay(0,llDumpList2String(strengths," "));
       checkDeparted(llParseString2List(departed,["+"],[]));
-      setAlpha(llParseString2List(current,["+"],[]),
-         llParseString2List(newbies,["+"],[]));
+      setAlpha(strengths, llParseString2List(newbies,["+"],[]));
       break;
     }
     case noAgents: {

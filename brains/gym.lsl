@@ -2,7 +2,11 @@
 #include "include/controlstack.h"
 #define noAgents  2
 
-#define EyeOfEkron "d7313cec-6f94-8ea0-6359-c2ad0b922f52"
+#ifdef DEBUGGING
+#define EyeOfEkron (key) "6456374b-8b39-f398-1233-e4ba1a4a7835"
+#else
+#define EyeOfEkron (key) "d7313cec-6f94-8ea0-6359-c2ad0b922f52"
+#endif
 
 #define GREET 2000
 #define REZ_GREETER 2001

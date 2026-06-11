@@ -1,7 +1,10 @@
 // NPC [UUID, STATE, DEST LOC, PING,...
 #include "include/animesh.h"
+#ifdef DEBUGGING
 #define EyeOfEkron (key) "6456374b-8b39-f398-1233-e4ba1a4a7835"
-//"d7313cec-6f94-8ea0-6359-c2ad0b922f52"
+#else
+#define EyeOfEkron (key) "d7313cec-6f94-8ea0-6359-c2ad0b922f52"
+#endif
 
 #ifndef STEP
 #define STEP 1.4
@@ -34,7 +37,8 @@ float g_tau;
 vector g_scale;
 vector home;
 integer moving;
-
+integer wander_state;
+integer wait_time;
 // Variables for stuck detection
 vector g_last_pos;
 integer g_stuck_count = 0;
@@ -42,9 +46,7 @@ integer g_wedged_count = 0;
 
 #define clear_animation() if (animation != "") { llStopObjectAnimation(animation); animation = ""; }
 
-make_region() {
-  vector a = RECT_1;
-  vector b = RECT_2;
+make_region(vector a, vector b) {
   vector min;
   vector max;
   if (a.x < b.x) { min.x = a.x; max.x = b.x; } else { min.x = b.x; max.x = a.x; }
@@ -70,7 +72,8 @@ pick_new_target() {
     current_target_pos = llGetPos();
     current_target_pos.x = rx;
     current_target_pos.y = ry;
-    g_tau = 0.5;
+    g_tau = llVecDist(llGetPos(), current_target_pos) / STEP;
+    if (g_tau < 0.5) g_tau = 0.5;
     move_to_target();
 }
 
@@ -178,14 +181,15 @@ default {
     avatar = (key) params[0];
 
     avatar_json = (string) params[1];
-
     running = (ignore == 1);
+
+    wander_state = 0;
 
     llSetStatus(STATUS_PHYSICS, TRUE);
     llSetStatus(STATUS_ROTATE_X | STATUS_ROTATE_Y, FALSE);
     if (running == FALSE) return;
 
-    make_region();
+    make_region((vector) (string) params[2], (vector) (string) params[3]);
     g_scale = llGetScale();
     animation = LAND;
 
@@ -303,10 +307,10 @@ state wander {
 
     timer() {
       vector my_pos = llGetPos();
-        
+      float dist = llVecDist(my_pos, current_target_pos);
+      
       if (is_following) { // target set in sensor
-	float dist = llVecDist(my_pos, current_target_pos);
-	
+	wander_state = 1;
 	if (dist > 1.5) {
 	  // We are more than 1.5m away from the follow spot, WALK to it
 	  if (animation != WALK) {
@@ -318,6 +322,7 @@ state wander {
 	  move_to_target();
 	} else {
 	  // We are close enough to the follow spot, STAND
+	  wander_state = 2;
 	  moving = FALSE;
 	  llStopMoveToTarget();
 	  llRotLookAt(llDetectedRot(0), 1.0, 1.0); // Look the same direction as avatar
@@ -327,9 +332,31 @@ state wander {
 	  }
 	}
       } else {
-	moving = TRUE;
-	if (stuck(my_pos)) return;
-	move_to_target();
+	if (wander_state != 4) {
+	  wander_state = 3;
+	  moving = TRUE;
+	  if (stuck(my_pos)) return;
+	  // 2. Check horizontal distance to target
+	  if (dist < 1.0) {
+	    // Reached destination, pick a new spot
+	    wander_state = 4;
+	    moving = FALSE;
+	    llStopMoveToTarget();
+	    wait_time = llGetUnixTime() + (integer) llFrand(15);
+	    clear_animation();
+	    llStartObjectAnimation(animation = STAND);
+	  } else {
+	    move_to_target();
+	  }
+	} else {
+	  if (llGetUnixTime() > wait_time) {
+	    wander_state = 3;
+	    moving = TRUE;
+	    clear_animation();
+	    llStartObjectAnimation(animation = WALK);
+	    pick_new_target();
+	  }
+	}
       }
     }
     
