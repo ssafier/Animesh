@@ -14,6 +14,7 @@
 #define ACT_WANDER 4
 #define ACT_POSE 5
 #define ACT_WRESTLE 6
+#define ACT_GREET 7
 
 
 // Error Types
@@ -53,3 +54,11 @@
 #define RETURN_MAX_STRENGTH 1001
 
 #define ProbabilityWin(avistr, astr) (1.0/(1.0 + llPow(25.0, ((avistr) - (astr))/10000.0)))
+
+// Brain Stuff
+#define PING 2026
+#define PING_BACK 2027
+
+#ifndef StandingAnimation
+#define StandingAnimation "stand"
+#endif

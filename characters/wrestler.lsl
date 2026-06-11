@@ -164,7 +164,7 @@ default {
   }
 
   timer() {
-    llShout(0, "Any wimp wanna wrestle?  Just click the mat!");
+    llSay(0, CHALLENGE);
   }
 
   state_exit() { llSetTimerEvent(0); }
@@ -224,12 +224,12 @@ state get_target {
     float prob = ProbabilityWin(target_strength, MY_STRENGTH);
     llSay(Chan+8,"PROB|"+(string) prob);
     list intro;
-    if (prob > 0.9) {
+    if (prob < 0.1) {
       intro = absolute;
-    } else if (prob > 0.33) {
-      intro = equal;
-    } else {
+    } else if (prob > 0.67) {
       intro = weaker;
+    } else {
+      intro = equal;
     }
     llSay(0, (string)intro[(integer) llFrand(llGetListLength(intro))]);
     llSay(0, "O.K. "+llGetDisplayName(target_avi)+", let's rumble.");

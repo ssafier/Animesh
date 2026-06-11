@@ -23,8 +23,8 @@ default {
 	// this returns max, but can check the next state and return different results
 	integer strength = 300;
 	set_max(strength, (integer) llJsonGetValue(body, ["sml"]));
-	integer rp = (integer) llJsonGetValue(body, ["rp"]);
-	switch (rp) {
+	string rp =  llJsonGetValue(body, ["rp"]);
+	switch ((integer) llJsonGetValue(rp,["strength"])) {
 	case 1: strength = 200; break;
 	case 3: set_max(strength, 1000); break;
 	case 4: set_max(strength, 5000); break;
