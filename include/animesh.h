@@ -42,6 +42,7 @@
 #define SIT 112
 #define SitChannel 113
 #define UnSit 114
+#define LOOP_WALK 115
 
 #define DETECTED 120
 #define SCAN 121

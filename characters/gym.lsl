@@ -44,7 +44,20 @@ vector g_last_pos;
 integer g_stuck_count = 0;
 integer g_wedged_count = 0;
 
+#ifdef WALK_TIME
+clear_animation() {
+  if (animation == WALK) {
+    llMessageLinked(LINK_THIS, LOOP_WALK, "|0", NULL_KEY);
+  }
+  if (animation != "") {
+    llStopObjectAnimation(animation); animation = "";
+  }
+}
+#define stop_animation() if (animation != "") { llStopObjectAnimation(animation); animation = ""; }
+#else
 #define clear_animation() if (animation != "") { llStopObjectAnimation(animation); animation = ""; }
+#define stop_animation() clear_animation()
+#endif
 
 make_region(vector a, vector b) {
   vector min;
@@ -314,8 +327,13 @@ state wander {
 	if (dist > 1.5) {
 	  // We are more than 1.5m away from the follow spot, WALK to it
 	  if (animation != WALK) {
-	    clear_animation();
+	    stop_animation();
+#ifdef WALK_TIME
+	    llMessageLinked(LINK_THIS, LOOP_WALK,
+			    WALK + "|" + (string) WALK_TIME, NULL_KEY);
+#else
 	    llStartObjectAnimation(animation = WALK);
+#endif
 	  }
 	  moving = TRUE;
 	  if (stuck(my_pos)) return;
@@ -352,8 +370,13 @@ state wander {
 	  if (llGetUnixTime() > wait_time) {
 	    wander_state = 3;
 	    moving = TRUE;
-	    clear_animation();
+	    stop_animation();
+#ifdef WALK_TIME
+	    llMessageLinked(LINK_THIS, LOOP_WALK,
+			    "|" + WALK + "|" + (string) WALK_TIME, NULL_KEY);
+#else
 	    llStartObjectAnimation(animation = WALK);
+#endif
 	    pick_new_target();
 	  }
 	}

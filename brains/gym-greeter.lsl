@@ -47,9 +47,16 @@ integer getNextGreeter() {
 
 default {
   state_entry() {
-    greeters = ["Batman", NULL_KEY, NULL_KEY
+    greeters = [
 #ifndef DEBUGGING
-		,
+		"Ben Grimm", NULL_KEY, NULL_KEY,
+		"Batman", NULL_KEY, NULL_KEY,
+		"Damien Wayne", NULL_KEY, NULL_KEY,
+		"Red Robin", NULL_KEY, NULL_KEY,
+		"Harley Quinn", NULL_KEY, NULL_KEY,
+		"Dark Phoenix", NULL_KEY, NULL_KEY,
+		"Flash", NULL_KEY, NULL_KEY,
+		"Reverse Flash", NULL_KEY, NULL_KEY,
 		"Thor Odinson", NULL_KEY, NULL_KEY,
 		"Ironman", NULL_KEY, NULL_KEY,
 		"Hal Jordan", NULL_KEY, NULL_KEY,
@@ -58,8 +65,8 @@ default {
 		"Adam Warlock", NULL_KEY, NULL_KEY,
 		"Amazon", NULL_KEY, NULL_KEY,
 		"Red Hulk", NULL_KEY, NULL_KEY,
-		"Omni-Man", NULL_KEY, NULL_KEY
 #endif
+		"Omni-Man", NULL_KEY, NULL_KEY
 		];
     current_greeter = 0;
     greeter_len = llGetListLength(greeters);
