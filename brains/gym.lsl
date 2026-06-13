@@ -15,8 +15,6 @@
 #define FREE_GREETER 2003
 #define FREE_GREETER_BY_AVATAR 2004
 
-#define HULK NULL_KEY
-#define ABOMINATION NULL_KEY
 #define InArea 2
 // STATES (status)
 #define OFF 0
