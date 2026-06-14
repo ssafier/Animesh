@@ -49,6 +49,10 @@ default {
   state_entry() {
     greeters = [
 #ifndef DEBUGGING
+		"Azazel", NULL_KEY, NULL_KEY,
+		"Firestorm", NULL_KEY, NULL_KEY,
+		"Rogue", NULL_KEY, NULL_KEY,
+		"Human Torch", NULL_KEY, NULL_KEY,
 		"Ben Grimm", NULL_KEY, NULL_KEY,
 		"Batman", NULL_KEY, NULL_KEY,
 		"Damien Wayne", NULL_KEY, NULL_KEY,
@@ -65,6 +69,7 @@ default {
 		"Adam Warlock", NULL_KEY, NULL_KEY,
 		"Amazon", NULL_KEY, NULL_KEY,
 		"Red Hulk", NULL_KEY, NULL_KEY,
+		"Invincible", NULL_KEY, NULL_KEY,
 #endif
 		"Omni-Man", NULL_KEY, NULL_KEY
 		];
