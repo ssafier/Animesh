@@ -63,3 +63,12 @@
 #ifndef StandingAnimation
 #define StandingAnimation "stand"
 #endif
+
+
+#define doMenu 2
+#define getLeaf 4
+#define returnLeaf 5
+#define MENU_FAIL 6
+#define registerSequence 11
+#define runSequence 12
+#define stopSequence 13

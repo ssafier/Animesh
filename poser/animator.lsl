@@ -1,4 +1,4 @@
-#include "evolve/sps.h"
+#include "src/animesh/include/animesh.h"
 
 #ifndef debug
 #define debug(x)
@@ -8,12 +8,12 @@
 #define NOTECARD_NAME ".animations"
 #endif
 
-#ifndef SPOTTER_NAME
-#define SPOTTER_NAME "spotter"
+#ifndef AVATAR_NAME
+#define AVATAR_NAME "spotter"
 #endif
 
-integer spotter_prim;
-integer lifter_prim;
+integer avatar_prim;
+integer animesh_prim;
 
 // [name, pose1, pose2,...]
 list poses;
@@ -40,16 +40,16 @@ initialize() {
   // find the animators
   integer objectPrimCount = llGetObjectPrimCount(llGetKey());
   integer currentLinkNumber = 0;
-  lifter_prim = spotter_prim = -1;
+  animesh_prim = avatar_prim = -1;
   while(currentLinkNumber <= objectPrimCount) {
     list params = llGetLinkPrimitiveParams(currentLinkNumber, [PRIM_NAME]);
-    if ((string) params[0] == SPOTTER_NAME) {
-      spotter_prim = currentLinkNumber;
+    if ((string) params[0] == AVATAR_NAME) {
+      avatar_prim = currentLinkNumber;
     }
     ++currentLinkNumber;
   }
-  lifter_prim = LINK_THIS;
-  if (lifter_prim == -1 || spotter_prim == -1) {
+  animesh_prim = LINK_THIS;
+  if (animesh_prim == -1 || avatar_prim == -1) {
     llSay(0, "Error: cannot find animator prims");
   }
 }
@@ -113,12 +113,12 @@ default {
     }
     debug("translate "+llDumpList2String(translation, " "));
     // should handle animation sequences in animators
-    llMessageLinked(lifter_prim, doAnimate, (string) m[4] + "|" + (string) translation[0], (key) m[1]);
+    llMessageLinked(animesh_prim, doAnimate, (string) m[4] + "|" + (string) translation[0], (key) m[1]);
 #ifdef ALLOW_SINGLE
     debug("single? "+(string)(key)m[2]);
     if ((string) m[2] != "" && (key) m[2] != NULL_KEY)
 #endif
-    llMessageLinked(spotter_prim, doAnimate, (string) m[4] + "|" + (string) translation[1], (key) m[2]);
+    llMessageLinked(avatar_prim, doAnimate, (string) m[4] + "|" + (string) translation[1], (key) m[2]);
   }
 
   changed(integer f) {

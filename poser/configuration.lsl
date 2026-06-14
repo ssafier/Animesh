@@ -1,14 +1,7 @@
 #include "include/controlstack.h" // standardized way to pass data and script instantiation
+#include "src/animesh/include/animesh.h"
 
-#define NOTECARD_NAME ".menu"
-
-#define doMenu 2
-#define getLeaf 4
-#define returnLeaf 5
-#define MENU_FAIL 6
-#define registerSequence 11
-#define runSequence 12
-#define stopSequence 13
+#define NOTECARD_NAME "!MENU"
 
 #ifndef debug
 #define debug(x)
@@ -54,6 +47,18 @@ parse_leaf(list leaf) {
   leaves = leaves +  [(string)leaf[1], v1, r1, v2, r2];
   ++leaf_count;
 }
+// ------------------------------------------
+list animesh_coord(list leaf_data) {
+  list animesh_data = llGetLinkPrimitiveParams(LINK_ROOT,
+					       [PRIM_POS_LOCAL, PRIM_ROT_LOCAL]);
+  vector animesh_pos = (vector)animesh_data[0];
+  rotation animesh_rot = (rotation)animesh_data[1];
+
+  return  llListReplaceList(leaf_data,
+			    [animesh_pos + (v2 * animesh_rot), r2 * animesh_rot],
+			    LEAF_SITTER_2_POSITION, LEAF_SITTER_2_ROTATION]);
+}
+
 // ------------------------------------------
 string makeMenu(integer node, string rest, string data) {
   string r = (string)(integer)nodes[node+NODE_NEXT];
@@ -178,7 +183,7 @@ state serve_data {
       if (peek != "SEQUENCE")
 	llMessageLinked(LINK_THIS, stopSequence, "", NULL_KEY);
       node *= LEAF_STRIDE;
-      list n = llList2List(leaves, node, node+LEAF_STRIDE-1);
+      list n = animesh_coord(llList2List(leaves, node, node+LEAF_STRIDE-1));
       debug("leaf "+llDumpList2String(n,"|"));
       if (data == "") {
 	data = llDumpList2String(n,"|");
