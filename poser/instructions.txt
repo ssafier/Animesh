@@ -1,0 +1,20 @@
+How to use it:
+Save the above code as convert_avsitter.php on your Mac.
+
+Put your AVsitter notecard in the same folder and name it AVpos.txt.
+
+Open your Mac Terminal, navigate to the folder, and run:
+
+Bash
+php convert_avsitter.php
+It will generate animations.txt and menu.txt instantly.
+
+-----
+Save the above code as convert_mlp.php on your Mac.
+
+Export your MLP notecards and save them in the same folder as the PHP script. Name them menuitems.txt and positions.txt.
+
+Open your Mac Terminal, navigate to the folder, and run:
+
+Bash
+php convert_mlp.php
