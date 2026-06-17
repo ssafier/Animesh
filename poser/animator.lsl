@@ -5,15 +5,11 @@
 #endif
 
 #ifndef NOTECARD_NAME
-#define NOTECARD_NAME ".animations"
+#define NOTECARD_NAME "!Animations"
 #endif
 
-#ifndef AVATAR_NAME
-#define AVATAR_NAME "spotter"
-#endif
-
-integer avatar_prim;
-integer animesh_prim;
+#define animesh_prim LINK_THIS
+key avatar_prim;
 
 // [name, pose1, pose2,...]
 list poses;
@@ -21,8 +17,54 @@ list poses;
 key note_handle;
 integer initialized = FALSE;
 
-//----------------------
+integer flags;
+list translation;
+list cached_animation;
+key current_avatar;
 
+// -------------------------
+stopAllAnims(key avi) {
+  list anims = llGetAnimationList(avi);
+  integer len = llGetListLength(anims);
+  while(len) {
+    --len;
+    llStopAnimation((key) anims[len]);
+  }
+}
+
+// ---------------------
+reset() {
+  flags = 0;
+  current_avatar = NULL_KEY;
+  cached_animation = ["stand","stand"];
+}
+
+// ----------------------
+animate(key agent) {
+  if (current_avatar == NULL_KEY) return;
+  if (flags & afStopAll) {
+    stopAllAnims(agent);
+  }
+  integer replace = (flags & afReplace) != 0;
+  if (replace) {
+    llStopAnimation((string) cached_animation[0]);
+    llStopObjectAnimation((string) cached_animation[1]);
+  }
+  if ((flags & afCache) != 0) {
+    if (!replace && (translation != cached_animation)) {
+      llStopAnimation((string) cached_animation[0]);
+      llStopObjectAnimation((string) cached_animation[1]);
+    }
+    cached_animation = translation;
+    llStartAnimation((string) cached_animation[0]);
+    llStartObjectAnimation((string) cached_animation[1]);
+  } else {
+    llStartAnimation((string) cached_animation[0]);
+    llStartObjectAnimation((string) cached_animation[1]);
+  }
+}
+
+//----------------------
 list translateAnimation(string a) {
   integer l = llGetListLength(poses);
   integer x = 0;
@@ -32,37 +74,25 @@ list translateAnimation(string a) {
   }
   return [];
 }
-//----------------------
 
-initialize() {
+//----------------------
+initialize(string avi_data) {
   if (initialized) return;
-  initialized = TRUE;
-  // find the animators
-  integer objectPrimCount = llGetObjectPrimCount(llGetKey());
-  integer currentLinkNumber = 0;
-  animesh_prim = avatar_prim = -1;
-  while(currentLinkNumber <= objectPrimCount) {
-    list params = llGetLinkPrimitiveParams(currentLinkNumber, [PRIM_NAME]);
-    if ((string) params[0] == AVATAR_NAME) {
-      avatar_prim = currentLinkNumber;
-    }
-    ++currentLinkNumber;
-  }
-  animesh_prim = LINK_THIS;
-  if (animesh_prim == -1 || avatar_prim == -1) {
-    llSay(0, "Error: cannot find animator prims");
-  }
+  vector size = llGetScale();
+  vector pos = llGetPos();
+  pos.z -= (size.z / 2.0);
+  pos.x += 0.5;
+  avatar_prim = llRezObjectWithParams("avi_prim", [REZ_POS, pos, FALSE, TRUE,
+						  REZ_PARAM, 1,
+						  REZ_ROT, ZERO_ROTATION, FALSE,
+						  REZ_PARAM_STRING, avi_data]);
 }
 
 //----------------------
 default {
-  on_rez(integer x) {
-    initialize();
-  }
-  
   state_entry() {
-    initialize();
-    llSay(0, "Reading animations file.");
+    debug("Reading animations file.");
+    reset();
     poses = [];
     note_handle = llGetNumberOfNotecardLines(NOTECARD_NAME);
   }
@@ -94,7 +124,7 @@ default {
 	    }
 	  }
 	} else {
-	  llSay(0,"Animations loaded.");
+	  debug("Animations loaded.");
 	  //llOwnerSay("poses "+llDumpList2String(poses," "));
 	}
       }
@@ -102,29 +132,50 @@ default {
   }
 
   link_message(integer from, integer chan, string msg, key xyzzy) {
-    if (chan != doAnimations)  return;
+    if (chan != doAnimations &&
+	chan != sitAvatar)  return;
     debug("animate "+msg);
-    list m = llParseStringKeepNulls(msg, ["|"], []);
-   // translated this into sitters 1 and 2 then pass to the prim to execute
-    list translation = translateAnimation((string) m[3]);
-    if (msg == "" || (string) translation[0] == "" || (string) translation[1] == "") {
-      llOwnerSay("Animation not found "+msg);
-      return;
+    switch (chan) {
+    case sitAvatar: {
+      integer index = llSubStringIndex(msg, "|");
+      current_avatar = (key) llGetSubString(msg, 0, index - 1);
+      initialize(msg);
+      break;
     }
-    debug("translate "+llDumpList2String(translation, " "));
-    // should handle animation sequences in animators
-    llMessageLinked(animesh_prim, doAnimate, (string) m[4] + "|" + (string) translation[0], (key) m[1]);
-#ifdef ALLOW_SINGLE
-    debug("single? "+(string)(key)m[2]);
-    if ((string) m[2] != "" && (key) m[2] != NULL_KEY)
-#endif
-    llMessageLinked(avatar_prim, doAnimate, (string) m[4] + "|" + (string) translation[1], (key) m[2]);
+    case doAnimations: { // animation | flags
+      if (chan == resetAnimationState) {
+	reset();
+	return;
+      }
+      list m = llParseStringKeepNulls(msg, ["|"], []);
+      translation = translateAnimation((string) m[0]);
+      if (msg == "" || (string) translation[0] == "" || (string) translation[1] == "") {
+	llOwnerSay("Animation not found "+msg);
+	return;
+      }
+      debug("translate "+llDumpList2String(translation, " "));
+      // should handle animation sequences in animators
+      flags = (integer) (string) m[1];
+      llRequestExperiencePermissions(current_avatar, "");
+      break;
+    }
+    default: break;
+    }
+  }
+
+  experience_permissions(key avi) {
+    animate(avi);
   }
 
   changed(integer f) {
     if (f & CHANGED_INVENTORY) {
       llResetScript();
     }
+  }
+
+  object_rez(key object) {
+    if (object == avatar_prim) initialized = TRUE;
+    llMessageLinked(LINK_THIS, avatarSeated, "", object);
   }
 }
 

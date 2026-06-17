@@ -1,7 +1,7 @@
 #include "include/controlstack.h" // standardized way to pass data and script instantiation
 #include "src/animesh/include/animesh.h"
 
-#define NOTECARD_NAME "!MENU"
+#define NOTECARD_NAME "!Menu"
 
 #ifndef debug
 #define debug(x)
@@ -50,13 +50,15 @@ parse_leaf(list leaf) {
 // ------------------------------------------
 list animesh_coord(list leaf_data) {
   list animesh_data = llGetLinkPrimitiveParams(LINK_ROOT,
-					       [PRIM_POS_LOCAL, PRIM_ROT_LOCAL]);
-  vector animesh_pos = (vector)animesh_data[0];
-  rotation animesh_rot = (rotation)animesh_data[1];
+					       [PRIM_POSITION, PRIM_ROTATION]);
+  vector animesh_pos = (vector)animesh_data[1];
+  rotation animesh_rot = (rotation)animesh_data[2];
 
-  return  llListReplaceList(leaf_data,
-			    [animesh_pos + (v2 * animesh_rot), r2 * animesh_rot],
-			    LEAF_SITTER_2_POSITION, LEAF_SITTER_2_ROTATION]);
+  return  [(string) leaf_data[LEAF_NAME]] +
+    [animesh_pos, animesh_rot,
+     animesh_pos + (((vector) leaf_data[LEAF_SITTER_2_POSITION] -
+		     (vector) leaf_data[LEAF_SITTER_1_POSITION]) * animesh_rot),
+     (rotation) leaf_data[LEAF_SITTER_2_ROTATION] * animesh_rot];
 }
 
 // ------------------------------------------

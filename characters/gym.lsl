@@ -7,7 +7,7 @@
 #endif
 
 #ifndef STEP
-#define STEP 1.4
+#define STEP 0.5
 #endif
 
 integer brain = 0x922f52;
@@ -20,6 +20,7 @@ integer running;
 
 key avatar;
 string avatar_json;
+integer avatar_handle;
 
 integer sml;
 integer rp;
@@ -207,8 +208,9 @@ default {
     animation = LAND;
 
     channel = (integer) ("0x"+llGetSubString((string) llGetKey(), -6, -1));
-    handle = llListen(channel, "", EyeOfEkron, "");
-
+    handle = llListen(channel, "", "", "");
+    avatar_handle = llListen(0, "", avatar, "");
+    llListenControl(avatar_handle, FALSE);
     integer g = 0;
     list greetings = GREETINGS;
     parse_json();
@@ -246,15 +248,221 @@ default {
     if (g > 0) g--;
     g = g * 5 + (integer) llFrand(5);
     status = 7; // GREETING
-    llShout(0, chatString((string) greetings[g]));
     llStartObjectAnimation(animation);
     llSetTimerEvent(1.25);
   }
+
   timer() {
     llSetTimerEvent(0);
     clear_animation();
     llStartObjectAnimation(animation = STAND);
     state wander;
+  }
+
+#define FILTERS [EyeOfEkron, avatar]
+  listen(integer chan, string name, key xyzzy, string msg) {
+    list filters = FILTERS;
+    if (llListFindList(filters,[xyzz]) == -1) returnl
+    list params = llParseString2List(msg, ["|"], []);
+    if (chan == 0) return;
+    switch((string) params[0]) {
+    case "STATUS": {
+      llRegionSayTo(EyeOfEkron, brain,
+		    "STATUS|" + (string) status + "|" + (string) llGetPos());
+      break;
+    }
+    case "FREE": {
+      llDie();
+      break;
+    }
+   default: break;
+    }      
+  }
+  state_exit() {
+    llListenRemove(handle);
+    llListenRemove(avatar_handle);
+  }
+    
+}
+
+state wander {
+  state_entry() {
+    llSleep(0.45+llFrand(1.5));
+    llShout(0, chatString((string) greetings[g]));
+    handle = llListen(channel, "", "", "");
+    avatar_handle = llListen(0, "", avatar, "");
+    llListenControl(avatar_handle, FALSE);
+    llSensorRepeat("", avatar, AGENT, 96.0, PI, 1.0);
+    llSetTimerEvent(0.5);         
+        // Initialize the first wander target
+    pick_new_target();
+  }
+
+  state_exit() {
+    llListenRemove(handle);
+    llListenRemove(avatar_handle);
+  }
+
+  sensor(integer num) {
+    vector av_pos = llDetectedPos(0);
+    rotation av_rot = llDetectedRot(0);
+    
+        // Check if the avatar is inside the defined region
+    if (av_pos.x >= (REGION_MIN.x - 2) && av_pos.x <= (REGION_MAX.x + 2) &&
+	av_pos.y >= (REGION_MIN.y - 2) && av_pos.y <= (REGION_MAX.y + 2)) {
+      
+      is_following = TRUE;
+      llListenControl(avatar_handle, TRUE);
+      vector behind_offset = llVecNorm(av_pos - llGetPos())*2.5;
+      vector ideal_pos = av_pos + behind_offset;
+            
+      // Ensure the follow point doesn't stray outside the region
+      current_target_pos = clamp_to_region(ideal_pos,0);
+      current_target_pos.z = av_pos.z; 
+    } else {
+      // Avatar is logged in, but outside the region bounds
+      if (is_following) {
+	is_following = FALSE;
+	llListenControl(avatar_handle, FALSE);
+	pick_new_target();
+      }
+    }
+  }
+    
+  no_sensor() {
+    // Avatar is offline or out of scanner range completely
+    is_following = FALSE;
+    llRegionSayTo(EyeOfEkron,brain, "DEPART");
+    llSleep(0.1);
+    llListenRemove(handle);
+    llListenRemove(avatar_handle);
+    llDie();
+  }
+
+  timer() {
+    vector my_pos = llGetPos();
+    float dist = llVecDist(my_pos, current_target_pos);
+      
+    if (is_following) { // target set in sensor
+      wander_state = 1;
+      if (dist > 2.5) {
+	// We are more than 1.5m away from the follow spot, WALK to it
+	if (animation != WALK) {
+	  stop_animation();
+#ifdef WALK_TIME
+	  llMessageLinked(LINK_THIS, LOOP_WALK,
+			  WALK + "|" + (string) WALK_TIME, NULL_KEY);
+#else
+	  llStartObjectAnimation(animation = WALK);
+#endif
+	}
+	moving = TRUE;
+	if (stuck(my_pos)) return;
+	move_to_target();
+      } else {
+	// We are close enough to the follow spot, STAND
+	wander_state = 2;
+	moving = FALSE;
+	llStopMoveToTarget();
+	llRotLookAt(llDetectedRot(0), 1.0, 1.0); // Look the same direction as avatar
+	if (animation != STAND) {
+	  clear_animation();
+	  llStartObjectAnimation(animation = STAND);
+	}
+      }
+    } else {
+      if (wander_state != 4) {
+	wander_state = 3;
+	moving = TRUE;
+	if (stuck(my_pos)) return;
+	// 2. Check horizontal distance to target
+	if (dist < 1.0) {
+	  // Reached destination, pick a new spot
+	  wander_state = 4;
+	  moving = FALSE;
+	  llStopMoveToTarget();
+	  wait_time = llGetUnixTime() + (integer) llFrand(15);
+	  clear_animation();
+	  llStartObjectAnimation(animation = STAND);
+	} else {
+	  move_to_target();
+	}
+      } else {
+	if (llGetUnixTime() > wait_time) {
+	  wander_state = 3;
+	  moving = TRUE;
+	  stop_animation();
+#ifdef WALK_TIME
+	  llMessageLinked(LINK_THIS, LOOP_WALK,
+			  "|" + WALK + "|" + (string) WALK_TIME, NULL_KEY);
+#else
+	  llStartObjectAnimation(animation = WALK);
+#endif
+	  pick_new_target();
+	}
+      }
+    }
+  }
+    
+  collision_start(integer num_detected)  {
+    if (!moving) return;
+    integer hits = obstacle();
+    //llSay(0, (string) hits);
+    if (hits == 4 || hits == 0) return; // step or floor or nothing
+    //llSay(0,(string) hits);
+    if (llDetectedType(0) & AGENT) {
+      llMessageLinked(LINK_THIS, BUMP, (string) llDetectedPos(0), llDetectedKey(0));
+    } else {
+      if (g_stuck_count > 3) g_wedged_count = g_stuck_count = 0; 
+      llStopMoveToTarget();
+      pick_new_target();
+    }
+  }
+  
+  listen(integer chan, string name, key xyzzy, string msg) {
+    list filters = FILTERS;
+    if (llListFindList(filters,[xyzz]) == -1) returnl
+    list params = llParseString2List(msg, ["|"], []);
+    if (chan == 0) {
+      switch (llToLower(msg)) {
+      case llToLower(llGetObjectName()): {
+	llSay(0, "Here!");
+	break;
+      }
+      case "ok "+llToLower(llGetObjectName())+" let's wrestle.":
+      case llToLower(llGetObjectName())+" let's wrestle.":
+      case"let's wrestle.":
+      case"let's wrestle": {
+	clear_animation();
+	llMessageLinked(LINK_THIS, WRESTLE, avatar_json, avatar);
+	state wait;
+      }
+      default:break;
+      }
+      return;
+    }
+    switch((string) params[0]) {
+    case "STATUS": {
+      llRegionSayTo(EyeOfEkron, brain,
+		    "STATUS|" + (string) status + "|" + (string) llGetPos());
+      break;
+    }
+    case "FREE": {
+      llDie();
+	break;
+    }
+    default: break;
+    }      
+  }
+}
+
+state wait {
+  state_entry() {
+    handle = llListen(channel, "", EyeOfEkron, "");
+  }
+
+  state_exit() {
+    llListenRemove(handle);
   }
 
   listen(integer chan, string name, key xyzzy, string msg) {
@@ -269,148 +477,7 @@ default {
       llDie();
       break;
     }
-   default: break;
+    default: break;
     }      
   }
-}
-
-state wander {
-  state_entry() {
-        llSensorRepeat("", avatar, AGENT, 96.0, PI, 1.0);
-        
-        // Initialize the first wander target
-	pick_new_target();
-        llSetTimerEvent(0.5); 
-    }
-
-    sensor(integer num) {
-        vector av_pos = llDetectedPos(0);
-        rotation av_rot = llDetectedRot(0);
-        
-        // Check if the avatar is inside the defined region
-        if (av_pos.x >= (REGION_MIN.x - 2) && av_pos.x <= (REGION_MAX.x + 2) &&
-            av_pos.y >= (REGION_MIN.y - 2) && av_pos.y <= (REGION_MAX.y + 2)) {
-            
-            is_following = TRUE;
-            llSetTimerEvent(0.5); // Ensure fast updates for following
-            
-            // Calculate a position 2 meters directly behind the avatar
-            vector behind_offset = <-2.0, 0.0, 0.0> * av_rot;
-            vector ideal_pos = av_pos + behind_offset;
-            
-            // Ensure the follow point doesn't stray outside the region
-            current_target_pos = clamp_to_region(ideal_pos,0);
-            current_target_pos.z = av_pos.z; 
-        } else {
-	  // Avatar is logged in, but outside the region bounds
-	  if (is_following) {
-            is_following = FALSE;
-	    pick_new_target();
-	  }
-        }
-    }
-    
-    no_sensor() {
-        // Avatar is offline or out of scanner range completely
-        is_following = FALSE;
-	llRegionSayTo(EyeOfEkron,brain, "DEPART");
-	llSleep(0.1);
-	llDie();
-    }
-
-    timer() {
-      vector my_pos = llGetPos();
-      float dist = llVecDist(my_pos, current_target_pos);
-      
-      if (is_following) { // target set in sensor
-	wander_state = 1;
-	if (dist > 1.5) {
-	  // We are more than 1.5m away from the follow spot, WALK to it
-	  if (animation != WALK) {
-	    stop_animation();
-#ifdef WALK_TIME
-	    llMessageLinked(LINK_THIS, LOOP_WALK,
-			    WALK + "|" + (string) WALK_TIME, NULL_KEY);
-#else
-	    llStartObjectAnimation(animation = WALK);
-#endif
-	  }
-	  moving = TRUE;
-	  if (stuck(my_pos)) return;
-	  move_to_target();
-	} else {
-	  // We are close enough to the follow spot, STAND
-	  wander_state = 2;
-	  moving = FALSE;
-	  llStopMoveToTarget();
-	  llRotLookAt(llDetectedRot(0), 1.0, 1.0); // Look the same direction as avatar
-	  if (animation != STAND) {
-	    clear_animation();
-	    llStartObjectAnimation(animation = STAND);
-	  }
-	}
-      } else {
-	if (wander_state != 4) {
-	  wander_state = 3;
-	  moving = TRUE;
-	  if (stuck(my_pos)) return;
-	  // 2. Check horizontal distance to target
-	  if (dist < 1.0) {
-	    // Reached destination, pick a new spot
-	    wander_state = 4;
-	    moving = FALSE;
-	    llStopMoveToTarget();
-	    wait_time = llGetUnixTime() + (integer) llFrand(15);
-	    clear_animation();
-	    llStartObjectAnimation(animation = STAND);
-	  } else {
-	    move_to_target();
-	  }
-	} else {
-	  if (llGetUnixTime() > wait_time) {
-	    wander_state = 3;
-	    moving = TRUE;
-	    stop_animation();
-#ifdef WALK_TIME
-	    llMessageLinked(LINK_THIS, LOOP_WALK,
-			    "|" + WALK + "|" + (string) WALK_TIME, NULL_KEY);
-#else
-	    llStartObjectAnimation(animation = WALK);
-#endif
-	    pick_new_target();
-	  }
-	}
-      }
-    }
-    
-    collision_start(integer num_detected)  {
-      if (!moving) return;
-      integer hits = obstacle();
-      //llSay(0, (string) hits);
-      if (hits == 4 || hits == 0) return; // step or floor or nothing
-      //llSay(0,(string) hits);
-      if (llDetectedType(0) & AGENT) {
-	llMessageLinked(LINK_THIS, BUMP, (string) llDetectedPos(0), llDetectedKey(0));
-      } else {
-	if (g_stuck_count > 3) g_wedged_count = g_stuck_count = 0; 
-	llStopMoveToTarget();
-	pick_new_target();
-      }
-    }
-
-    listen(integer chan, string name, key xyzzy, string msg) {
-      list params = llParseString2List(msg, ["|"], []);
-      switch((string) params[0]) {
-      case "STATUS": {
-	llRegionSayTo(EyeOfEkron, brain,
-		      "STATUS|" + (string) status + "|" + (string) llGetPos());
-	break;
-      }
-      case "FREE": {
-	llDie();
-	break;
-      }
-      default: break;
-      }      
-    }
 }

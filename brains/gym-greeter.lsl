@@ -52,6 +52,7 @@ default {
 		"Azazel", NULL_KEY, NULL_KEY,
 		"Firestorm", NULL_KEY, NULL_KEY,
 		"Rogue", NULL_KEY, NULL_KEY,
+		"Northstar", NULL_KEY, NULL_KEY,
 		"Human Torch", NULL_KEY, NULL_KEY,
 		"Ben Grimm", NULL_KEY, NULL_KEY,
 		"Batman", NULL_KEY, NULL_KEY,

@@ -1,6 +1,12 @@
 #define CONTROLLER_CHAN -88888
 #define CONTROLLER_KEY NULL_KEY
 
+// animation flags
+#define afStopAll 1
+#define afCache 2
+#define afReplace 4
+#define afLoop 8 // loop
+
 // Command Prefixes
 #define CMD_ACTION 1
 #define CMD_ERROR  2
@@ -60,15 +66,17 @@
 #define PING 2026
 #define PING_BACK 2027
 
-#ifndef StandingAnimation
-#define StandingAnimation "stand"
-#endif
-
-
+// Config and Menu
 #define doMenu 2
+#define sitAvatar 3
 #define getLeaf 4
 #define returnLeaf 5
 #define MENU_FAIL 6
+#define doAnimations 10
 #define registerSequence 11
 #define runSequence 12
 #define stopSequence 13
+#define resetAnimationState 15
+
+#define avatarSeated 49
+#define WRESTLE 50

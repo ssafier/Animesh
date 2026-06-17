@@ -14,7 +14,7 @@ default {
       return;
     }
     llStartObjectAnimation(animation = (string) params[0]);
-    llSetTimerEvent((float)(string)params[1]);
+    llSetTimerEvent(time);
   }
   timer() {
     llStartObjectAnimation(animation);
