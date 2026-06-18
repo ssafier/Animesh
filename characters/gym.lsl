@@ -14,6 +14,8 @@ integer brain = 0x922f52;
 integer channel;
 integer handle;
 
+list filters;
+
 integer status;
 string animation;
 integer running;
@@ -261,7 +263,7 @@ default {
 
 #define FILTERS [EyeOfEkron, avatar]
   listen(integer chan, string name, key xyzzy, string msg) {
-    list filters = FILTERS;
+    filters = FILTERS;
     if (llListFindList(filters,[xyzz]) == -1) returnl
     list params = llParseString2List(msg, ["|"], []);
     if (chan == 0) return;
@@ -458,6 +460,7 @@ state wander {
 
 state wait {
   state_entry() {
+    filters = [];
     handle = llListen(channel, "", EyeOfEkron, "");
   }
 

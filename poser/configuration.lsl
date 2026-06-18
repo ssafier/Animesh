@@ -50,7 +50,7 @@ parse_leaf(list leaf) {
 // ------------------------------------------
 list animesh_coord(list leaf_data) {
   list animesh_data = llGetLinkPrimitiveParams(LINK_ROOT,
-					       [PRIM_POSITION, PRIM_ROTATION]);
+					       [PRIM_POS_LOCAL, PRIM_ROT_LOCAL]);
   vector animesh_pos = (vector)animesh_data[1];
   rotation animesh_rot = (rotation)animesh_data[2];
 
@@ -110,7 +110,7 @@ default {
   state_entry()  {
     sequences = nodes = leaves = [];
     leaf_count = node_count = 0;
-	  llSay(0,"Loading configuration.");
+    debug("Loading configuration.");
     note_handle = llGetNumberOfNotecardLines(NOTECARD_NAME);
   }
     
@@ -155,7 +155,7 @@ default {
 	    }
 	  }
 	} else {  // EOF
-	  llSay(0,"Configuration loaded.");
+	  debug("Configuration loaded.");
 	  state serve_data;
 	}
       }

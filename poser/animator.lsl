@@ -8,8 +8,8 @@
 #define NOTECARD_NAME "!Animations"
 #endif
 
-#define animesh_prim LINK_THIS
-key avatar_prim;
+#define animesh_prim LINK_ROOT
+integer avatar_prim;
 
 // [name, pose1, pose2,...]
 list poses;
@@ -32,23 +32,30 @@ stopAllAnims(key avi) {
   }
 }
 
-// ---------------------
-reset() {
-  flags = 0;
-  current_avatar = NULL_KEY;
-  cached_animation = ["stand","stand"];
+stopAllObjectAnims() {
+  list anims = llGetObjectAnimationNames();
+  integer len = llGetListLength(anims);
+  while(len) {
+    --len;
+    llStopObjectAnimation((string) anims[len]);
+  }
 }
 
 // ----------------------
 animate(key agent) {
-  if (current_avatar == NULL_KEY) return;
   if (flags & afStopAll) {
+    debug("stop");
     stopAllAnims(agent);
   }
   integer replace = (flags & afReplace) != 0;
   if (replace) {
+    debug("replace");
     llStopAnimation((string) cached_animation[0]);
     llStopObjectAnimation((string) cached_animation[1]);
+  }
+  if (flags & afSwap) {
+    list temp = translation;
+    translation = [(string) temp[1], (string) temp[0]];
   }
   if ((flags & afCache) != 0) {
     if (!replace && (translation != cached_animation)) {
@@ -59,9 +66,11 @@ animate(key agent) {
     llStartAnimation((string) cached_animation[0]);
     llStartObjectAnimation((string) cached_animation[1]);
   } else {
+    debug("default");
     llStartAnimation((string) cached_animation[0]);
     llStartObjectAnimation((string) cached_animation[1]);
   }
+  debug("done");
 }
 
 //----------------------
@@ -76,24 +85,29 @@ list translateAnimation(string a) {
 }
 
 //----------------------
-initialize(string avi_data) {
-  if (initialized) return;
-  vector size = llGetScale();
-  vector pos = llGetPos();
-  pos.z -= (size.z / 2.0);
-  pos.x += 0.5;
-  avatar_prim = llRezObjectWithParams("avi_prim", [REZ_POS, pos, FALSE, TRUE,
-						  REZ_PARAM, 1,
-						  REZ_ROT, ZERO_ROTATION, FALSE,
-						  REZ_PARAM_STRING, avi_data]);
-}
-
-//----------------------
 default {
   state_entry() {
     debug("Reading animations file.");
-    reset();
+    flags = 0;
+    current_avatar = NULL_KEY;
+    cached_animation = ["stand","stand"];
     poses = [];
+
+    integer objectPrimCount = llGetObjectPrimCount(llGetKey());
+    integer currentLinkNumber = 0;
+    avatar_prim = -1;
+    while(currentLinkNumber <= objectPrimCount && avatar_prim == -1) {
+      list params = llGetLinkPrimitiveParams(currentLinkNumber,
+					     [PRIM_NAME]);
+      switch((string) params[0]) {
+      case "avi prim": {
+	avatar_prim = currentLinkNumber;
+	break;
+      }
+      default: break;
+      }
+      ++currentLinkNumber;
+    }
     note_handle = llGetNumberOfNotecardLines(NOTECARD_NAME);
   }
 
@@ -132,21 +146,24 @@ default {
   }
 
   link_message(integer from, integer chan, string msg, key xyzzy) {
+    if (chan == resetAnimationState) {
+      stopAllObjectAnims();
+      stopAllAnims(current_avatar);
+      flags = 0;
+      current_avatar = NULL_KEY;
+      cached_animation = ["stand","stand"];
+      return;
+    }
     if (chan != doAnimations &&
 	chan != sitAvatar)  return;
     debug("animate "+msg);
     switch (chan) {
     case sitAvatar: {
-      integer index = llSubStringIndex(msg, "|");
-      current_avatar = (key) llGetSubString(msg, 0, index - 1);
-      initialize(msg);
+      current_avatar = xyzzy;
+      llMessageLinked(avatar_prim, 1, msg, current_avatar);
       break;
     }
     case doAnimations: { // animation | flags
-      if (chan == resetAnimationState) {
-	reset();
-	return;
-      }
       list m = llParseStringKeepNulls(msg, ["|"], []);
       translation = translateAnimation((string) m[0]);
       if (msg == "" || (string) translation[0] == "" || (string) translation[1] == "") {
@@ -156,6 +173,7 @@ default {
       debug("translate "+llDumpList2String(translation, " "));
       // should handle animation sequences in animators
       flags = (integer) (string) m[1];
+      debug("current 1 "+(string) current_avatar);
       llRequestExperiencePermissions(current_avatar, "");
       break;
     }
@@ -167,15 +185,12 @@ default {
     animate(avi);
   }
 
+  experience_permissions_denied(key avi, integer x) {}
+
   changed(integer f) {
     if (f & CHANGED_INVENTORY) {
       llResetScript();
     }
-  }
-
-  object_rez(key object) {
-    if (object == avatar_prim) initialized = TRUE;
-    llMessageLinked(LINK_THIS, avatarSeated, "", object);
   }
 }
 

@@ -75,6 +75,13 @@ default {
   }
 
   link_message(integer from, integer chan, string msg, key xyzzy) {
+    if (chan == menuOff) {
+      if (handle != -1) {
+	llListenControl(handle, FALSE);
+      }
+      llSetTimerEvent(0);
+      return;
+    }
     if (chan == doMenu) {
       string seq;
       string n;

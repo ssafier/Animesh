@@ -6,6 +6,7 @@
 #define afCache 2
 #define afReplace 4
 #define afLoop 8 // loop
+#define afSwap 16
 
 // Command Prefixes
 #define CMD_ACTION 1
@@ -68,6 +69,7 @@
 
 // Config and Menu
 #define doMenu 2
+#define menuOff -2
 #define sitAvatar 3
 #define getLeaf 4
 #define returnLeaf 5
@@ -78,5 +80,7 @@
 #define stopSequence 13
 #define resetAnimationState 15
 
+#define ACTION_OFF 48
 #define avatarSeated 49
 #define WRESTLE 50
+#define WRESTLE_DONE -50
