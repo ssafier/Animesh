@@ -190,6 +190,44 @@ string chatString(string s) {
     llGetSubString(s, idx + 2, -1);
 }
 
+integer calculateIndex() {
+  integer g = 0;
+  if (sml > 0) {
+    if (sml > 20000)
+      g = 6;
+    else if (sml > 16500)
+      g = 5;
+    else if (sml > 10000)
+      g = 4;
+    else if (sml > 5000)
+      g = 3;
+    else if (sml > 1000)
+      g = 2;
+    else
+      g = 1;
+  }
+  if (rp > 0 && rp > g) g = rp;
+  if (sps > 0) {
+    integer h = 0;
+    if (sps > 20000)
+      h = 6;
+    else if (sps > 16500)
+      h = 5;
+    else if (sps > 10000)
+      h = 4;
+    else if (sps > 5000)
+      h = 3;
+    else if (sps > 1000)
+      h = 2;
+    else
+      h = 1;
+    if (h > g) g = h;
+  }
+  if (g > 0) g--;
+  g = g * 5 + (integer) llFrand(5);
+  return g;
+}
+
 default {
   on_rez(integer ignore) {
     home = llGetPos();
@@ -198,7 +236,7 @@ default {
 
     avatar_json = (string) params[1];
     running = (ignore == 1);
-
+    parse_json();
     wander_state = 0;
 
     llSetStatus(STATUS_PHYSICS, TRUE);
@@ -213,42 +251,6 @@ default {
     handle = llListen(channel, "", "", "");
     avatar_handle = llListen(0, "", avatar, "");
     llListenControl(avatar_handle, FALSE);
-    integer g = 0;
-    list greetings = GREETINGS;
-    parse_json();
-    if (sml > 0) {
-      if (sml > 20000)
-	g = 6;
-      else if (sml > 16500)
-	g = 5;
-      else if (sml > 10000)
-	g = 4;
-      else if (sml > 5000)
-	g = 3;
-      else if (sml > 1000)
-	g = 2;
-      else
-	g = 1;
-    }
-    if (rp > 0 && rp > g) g = rp;
-    if (sps > 0) {
-      integer h = 0;
-      if (sps > 20000)
-	h = 6;
-      else if (sps > 16500)
-	h = 5;
-      else if (sps > 10000)
-	h = 4;
-      else if (sps > 5000)
-	h = 3;
-      else if (sps > 1000)
-	h = 2;
-      else
-	h = 1;
-      if (h > g) g = h;
-    }
-    if (g > 0) g--;
-    g = g * 5 + (integer) llFrand(5);
     status = 7; // GREETING
     llStartObjectAnimation(animation);
     llSetTimerEvent(1.25);
@@ -264,7 +266,7 @@ default {
 #define FILTERS [EyeOfEkron, avatar]
   listen(integer chan, string name, key xyzzy, string msg) {
     filters = FILTERS;
-    if (llListFindList(filters,[xyzz]) == -1) returnl
+    if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
     if (chan == 0) return;
     switch((string) params[0]) {
@@ -290,11 +292,11 @@ default {
 state wander {
   state_entry() {
     llSleep(0.45+llFrand(1.5));
-    llShout(0, chatString((string) greetings[g]));
+    list greetings = GREETINGS;
+    llShout(0, chatString((string) greetings[calculateIndex()]));
     handle = llListen(channel, "", "", "");
     avatar_handle = llListen(0, "", avatar, "");
     llListenControl(avatar_handle, FALSE);
-    llSensorRepeat("", avatar, AGENT, 96.0, PI, 1.0);
     llSetTimerEvent(0.5);         
         // Initialize the first wander target
     pick_new_target();
@@ -403,6 +405,7 @@ state wander {
 	  pick_new_target();
 	}
       }
+      llSensor("", avatar, AGENT, 96.0, PI);
     }
   }
     
@@ -413,6 +416,7 @@ state wander {
     if (hits == 4 || hits == 0) return; // step or floor or nothing
     //llSay(0,(string) hits);
     if (llDetectedType(0) & AGENT) {
+      if (llDetectedKey(0) == avatar) is_following = TRUE;
       llMessageLinked(LINK_THIS, BUMP, (string) llDetectedPos(0), llDetectedKey(0));
     } else {
       if (g_stuck_count > 3) g_wedged_count = g_stuck_count = 0; 
@@ -423,7 +427,7 @@ state wander {
   
   listen(integer chan, string name, key xyzzy, string msg) {
     list filters = FILTERS;
-    if (llListFindList(filters,[xyzz]) == -1) returnl
+    if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
     if (chan == 0) {
       switch (llToLower(msg)) {
@@ -433,9 +437,8 @@ state wander {
       }
       case "ok "+llToLower(llGetObjectName())+" let's wrestle.":
       case llToLower(llGetObjectName())+" let's wrestle.":
-      case"let's wrestle.":
-      case"let's wrestle": {
-	clear_animation();
+      case "let's wrestle": {
+	if (animation != "") llStopObjectAnimation(animation);
 	llMessageLinked(LINK_THIS, WRESTLE, avatar_json, avatar);
 	state wait;
       }
@@ -482,5 +485,11 @@ state wait {
     }
     default: break;
     }      
+  }
+  link_message(integer from, integer chan, string msg, key xyzzy) {
+    if (chan != WRESTLE_DONE) return;
+    while (llGetListLength(llGetObjectAnimationNames())) llSleep(0.1);
+    if (animation != "") llStartObjectAnimation(animation);
+    state wander;
   }
 }

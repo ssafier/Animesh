@@ -1,10 +1,16 @@
+#include "src/animesh/include/animesh.h"
+
 #ifndef debug
 #define debug(x)
+#else
+#define DEBUGGING
 #endif
 
 #define DELTA 0.01
 
-key avatar;
+key avatar = NULL_KEY;
+string avatar_json;
+
 vector offset;
 vector pos;
 rotation rot;
@@ -12,7 +18,11 @@ rotation rot;
 integer link_num;
 float fAdjust;
 
-integer handle;
+integer animesh_channel;
+
+integer ControlsActive;
+vector SitTargetRef = ZERO_VECTOR;
+vector SitTarget = ZERO_VECTOR;
 
 handle_control(key id, integer level, integer change) {
   debug("handle control "+(string)id+" "+(string)level+" "+(string)change);
@@ -46,7 +56,8 @@ handle_control(key id, integer level, integer change) {
     return;
   }
 
-  llSetPos(pos + offset * rot + SitTargetRef - SitTarget);
+  llSetLinkPrimitiveParamsFast(link_num,
+			       [PRIM_POS_LOCAL, pos + offset * rot + SitTargetRef - SitTarget]);
 }
 
 // enter "control ready" state.
@@ -56,7 +67,6 @@ control_ready() {
   integer controls = CONTROL_FWD | CONTROL_BACK;
 
   llTakeControls(controls, TRUE, FALSE);
-  llInstantMessage(avatar, "Allow adjusting your position by pressing FORWARD and BACK keys at the same time");
 }
 
 control_active() {
@@ -64,34 +74,42 @@ control_active() {
   integer controls = CONTROL_UP | CONTROL_DOWN | CONTROL_LEFT | CONTROL_RIGHT | CONTROL_FWD | CONTROL_BACK;
 
   llTakeControls(controls, TRUE, FALSE);
-  llInstantMessage(avatar, "Adjust your position using Pgup/Pgdn, Up/Down arrow, and shift-left/right arrow keys\nDisable by pressing Pgup and Pgdn keys at the same time");
-  pos = llGetPos();
-  rot = llGetRot();
+  pos = llGetLocalPos();
+  rot = llGetLocalRot();
 }
 
 default {
-  on_rez(integer x) {
-    if (x == 0) return;
-    string param = llGetStartString();
-    integer index = llSubStringIndex(param,"|");
-    if (index == -1) llDie();
-    avatar = (key) llGetSubString(param,0,index - 1);
-    llListen((integer)("0x"+llGetSubString((string) llGetKey(), -4, -1)), "", NULL_KEY, "");
-    llSetAlpha(1.0, ALL_SIDES);
+  state_entry() {
+    if (llGetLinkNumber() == 0) return;
+#ifdef DEBUGGING
+    llSetLinkAlpha(LINK_THIS, 1.0, ALL_SIDES);
+    llSetLinkPrimitiveParamsFast(LINK_THIS,
+				 [PRIM_SIZE, <0.5,0.5,0.1>,PRIM_POS_LOCAL, <0.5,0,-0.5>]);
+#else
+    llSetLinkAlpha(LINK_THIS, 0, ALL_SIDES);
+    llSetLinkPrimitiveParamsFast(LINK_THIS,
+				 [PRIM_SIZE, <0.05,0.05,0.01>,PRIM_POS_LOCAL, <0,0,-0.5>]);
+#endif
+    
     llSetLinkPrimitiveParamsFast(LINK_THIS,
 				 [PRIM_SIT_FLAGS,
 				  SIT_FLAG_ALLOW_UNSIT |
 				  SIT_FLAG_SCRIPTED_ONLY]);
-    link_num = -1;
-    llRequestExperiencePermissions(avatar,"");
+    llLinkSitTarget(LINK_THIS, <0,0,0.01>, ZERO_ROTATION);
+
+    if (avatar == NULL_KEY) return;
+    llRequestExperiencePermissions(avatar,""); 
   }
   
   experience_permissions(key avi) {
-    integer sitTest = llSitOnLink(avi, LINK_ROOT);
+    debug(avi);
+    integer sitTest = llSitOnLink(avi, LINK_THIS);
     if (sitTest == 1) {
+      debug("here");
       vector size = llGetAgentSize(avi);
       fAdjust = ((((0.008906 * size.z) + -0.049831) * size.z) + 0.088967) * size.z;
       integer linkNum = llGetNumberOfPrims();
+      link_num = -1;
       while(linkNum && link_num == -1) {
 	if (avi == llGetLinkKey(linkNum))
 	  link_num = linkNum;
@@ -99,24 +117,53 @@ default {
 	  --linkNum;
       }
       offset = ZERO_VECTOR;
+      control_ready();
+      llMessageLinked(LINK_ROOT, avatarSeated, "", avatar);
+    }
+  }
+
+  link_message(integer from, integer chan, string msg, key xyzzy) {
+    debug((string) chan + " " + msg + " " + (string) xyzzy);
+    switch(chan) {
+    case 1: {
+      integer index = llSubStringIndex(msg, "|");
+      avatar_json = llGetSubString(msg, index + 1, -1);
+      llRequestExperiencePermissions(avatar = xyzzy, "");
+      break;
+    }
+    case 2: {
+      integer index = llSubStringIndex(msg,"|");
+      if (index == -1) return;
+      debug(msg);
+      vector pos = (vector) llGetSubString(msg, 0, index - 1);
+      rotation rot = (rotation) llGetSubString(msg, index + 1, -1);
+      llSetLinkPrimitiveParamsFast(LINK_THIS,
+				   [PRIM_POS_LOCAL, pos, PRIM_ROT_LOCAL, rot]);
+      break;
+    }
+    default: break;
     }
   }
 
   changed(integer flag) {
     if (flag & CHANGED_LINK) {
-      if (avatar != NULL_KEY && link_num != -1 &&
-	  (llGetAgentSize(avatar) == ZERO_VECTOR ||
-	   avatar != llGetLinkKey(link_num))) llDie();
+      debug("key "+(string)llGetLinkKey(link_num));
+      if (avatar != NULL_KEY && link_num != -1 && avatar != llGetLinkKey(link_num)) {
+	debug("change");
+	llMessageLinked(LINK_ROOT, ACTION_OFF, "", avatar);
+	llSetLinkPrimitiveParamsFast(LINK_THIS,
+#ifdef DEBUGGING
+				     [PRIM_SIZE, <0.5,0.5,0.1>,PRIM_POS_LOCAL, <0.5,0,-0.5>]
+#else
+				     [PRIM_SIZE, <0.05,0.05,0.01>,PRIM_POS_LOCAL, <0,0,-0.5>]
+#endif
+				     );
+	avatar = NULL_KEY;
+      }
     }
   }
-  
-  listen(integer chan, string name, key xyzzy, string msg) {
-    integer index = llSubStringIndex(msg,"|");
-    if (index == -1) return;
-    debug(msg);
-    vector pos = (vector) llGetSubString(msg, 0, index - 1);
-    rotation rot = (rotation) llGetSubString(msg, index + 1, -1);
-    llSetLinkPrimitiveParamsFast(LINK_THIS,
-				 [PRIM_POSITION, pos, PRIM_ROTATION, rot]);
+  control(key id, integer level, integer change) {
+    debug("control "+(string)id+" "+(string)level+" "+(string)change);
+    handle_control(id, level, change);
   }
 }
