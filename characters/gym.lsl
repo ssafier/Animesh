@@ -410,7 +410,7 @@ state wander {
   }
     
   collision_start(integer num_detected)  {
-    if (!moving) return;
+    if (!moving || avatar == NULL_KEY) return;
     integer hits = obstacle();
     //llSay(0, (string) hits);
     if (hits == 4 || hits == 0) return; // step or floor or nothing

@@ -78,10 +78,12 @@ default {
 					     [PRIM_NAME]);
       switch((string) params[0]) {
       case "avi prim": {
+	/*
 	llSetLinkPrimitiveParamsFast(currentLinkNumber,
 				     [PRIM_SIZE, <0.5,0.5,0.1>,PRIM_POS_LOCAL, <0.5,0,-0.5>]
 				     );
 	llSetLinkAlpha(currentLinkNumber,1,ALL_SIDES);
+	*/
 	avatar_prim = currentLinkNumber;
 	break;
       }
