@@ -8,6 +8,8 @@
 #define EyeOfEkron (key) "d7313cec-6f94-8ea0-6359-c2ad0b922f52"
 #endif
 
+#define TELEPORTER (key) "07507936-095d-563e-d670-92bf1dd4fba9"
+
 #define GREET 2000
 #define REZ_GREETER 2001
 #define FREE_GREETER 2003
@@ -19,13 +21,14 @@
 #define OBJECT 2
 
 list greeters;
-list rez_points;
 GLOBAL_DATA;
-
-key yzzyx;
 
 integer current_greeter;
 integer greeter_len;
+
+integer handle;
+key avatar;
+integer saved_index;
 
 integer getNextGreeter() {
   integer current = current_greeter;
@@ -76,23 +79,14 @@ default {
 		];
     current_greeter = 0;
     greeter_len = llGetListLength(greeters);
-    rez_points = [
-#ifdef DEBUGGING
-		  <13.48603, 120.62470, 2985.5000>,
-		  <13.48603, 116.19430, 2985.5000>
-#else
-		  <99.55029, 41.80960, 2206.56500>,
-		  <97.85430, 41.80960, 2206.56500>,
-		  <95.34937, 44.10002, 2205.88800>,
-		  <102.46810, 44.10002, 2205.88800>,
-		  <99.15845, 50.03228, 2204.61900>
-#endif
-		  ];
-
+    handle = llListen(0x922f52 + 1, "", TELEPORTER, "");
+    llListenControl(handle, FALSE);
   }
   
-  object_rez(key id) {
-    key xyzzy = yzzyx;
+  listen(integer chan, string name, key xyzzy, string msg) {
+    llListenControl(handle, FALSE);
+    PUSH(msg);
+    greeters = llListReplaceList(greeters, [avatar, (key) msg], saved_index + AVATAR, saved_index + OBJECT);
     NEXT_STATE;
   }
   
@@ -122,22 +116,19 @@ default {
       PUSH(current);
       if (idx != -1) {
 	string json = (string) c[idx - 1];
-	yzzyx = xyzzy;
 	string object = "";
 	integer x = getNextGreeter();
 
 	if (x != -1) {
-	  vector pos = (vector) rez_points[(integer) llFrand(llGetListLength(rez_points))];
+	  integer brain = 0x922f52 + 1;
 	  vector rc1 = RECT_1;
 	  vector rc2 = RECT_2;
-	  key obj = llRezObjectWithParams((string) greeters[x],
-					  [REZ_POS, pos, FALSE, TRUE,
-					   REZ_PARAM, 1,
-					   REZ_ROT, ZERO_ROTATION, FALSE,
-					   REZ_PARAM_STRING,
-					   (string) n[0] + "|" + json + "|" + (string) rc1 + "|" + (string) rc2]);
-	  greeters = llListReplaceList(greeters, [(key)(string)n[0], obj], x + AVATAR, x + OBJECT);
-	  PUSH(obj);
+	  
+	  llListenControl(handle, TRUE);
+	  avatar = (key)(string)n[0];
+	  saved_index = x;
+	  llShout(0,"Incoming teleports from " + llGetDisplayName(avatar) + " and " + (string) greeters[x] + ".");
+	  llRegionSayTo(TELEPORTER, brain, (string) greeters[x] + "|" + (string) n[0] + "|" + json + "|" + (string) rc1 + "|" + (string) rc2);
 	  return;
 	}
 	PUSH(NULL_KEY);

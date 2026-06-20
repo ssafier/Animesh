@@ -161,8 +161,8 @@ setAlpha(list strengths, list newbies) {
       rank = 1;
     }
 
-    llShout(areaChannel, "ALPHA:"+ (string) alpha);
-    llShout(0, PUBLICwelcome);
+    // uncomment this if you want the alpha announced.
+    //llShout(0, PUBLICwelcome);
     llRegionSayTo(alpha,0,power);
     integer len = llGetListLength(strengths);
     while (i < len) {
@@ -237,7 +237,6 @@ default {
     case noAgents: {
       oldAlpha = alpha = NULL_KEY;
       oldName = name = "";
-      llShout(areaChannel, "ALPHA:");
       break;
     }
     default: break;
