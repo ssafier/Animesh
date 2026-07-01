@@ -1,4 +1,3 @@
-// NPC [UUID, STATE, DEST LOC, PING,...
 #include "include/animesh.h"
 #ifdef DEBUGGING
 #define EyeOfEkron (key) "6456374b-8b39-f398-1233-e4ba1a4a7835"
@@ -8,6 +7,10 @@
 
 #ifndef STEP
 #define STEP 0.5
+#endif
+
+#ifndef debug
+#define debug(x)
 #endif
 
 integer brain = 0x922f52;
@@ -28,6 +31,10 @@ integer sml;
 integer rp;
 string rp_name;
 integer sps;
+
+#define TAU 0.5
+#define BASE_MASS 7.5
+float mass;
 
 integer is_following;
 vector REGION_MIN;
@@ -88,8 +95,7 @@ pick_new_target() {
     current_target_pos = llGetPos();
     current_target_pos.x = rx;
     current_target_pos.y = ry;
-    g_tau = llVecDist(llGetPos(), current_target_pos) / STEP;
-    if (g_tau < 0.5) g_tau = 0.5;
+    g_tau = TAU * (mass / BASE_MASS);
     move_to_target();
 }
 
@@ -114,14 +120,14 @@ integer obstacle() {
 
 integer stuck(vector pos) {
   // 1. Stuck Detection (Are we walking into a wall without triggering a collision?)
-  if (llVecDist(pos, g_last_pos) < 0.2) {
-    //llSay(0, "stuck "+(string) g_stuck_count);
+  if (llVecDist(pos, g_last_pos) < 0.1) {
+    debug("stuck "+(string) g_stuck_count + " " + (string) llVecDist(pos, g_last_pos));
     g_stuck_count++;
     if (g_stuck_count > 3) { // Stuck for ~3 seconds
       g_wedged_count++;
       llStopMoveToTarget();
       if (g_wedged_count > 3) {
-	//llSay(0, "wedged");
+	debug("wedged");
 	g_wedged_count = 0;
 	llMoveToTarget(home, 0.1);
       }
@@ -235,6 +241,13 @@ default {
     avatar = (key) params[0];
 
     avatar_json = (string) params[1];
+    list anims = llGetObjectAnimationNames();
+    integer len = llGetListLength(anims);
+    while(len) {
+      --len;
+      llStopObjectAnimation((string) anims[len]);
+    }
+
     running = (ignore == 1);
     parse_json();
     wander_state = 0;
@@ -243,9 +256,19 @@ default {
     llSetStatus(STATUS_ROTATE_X | STATUS_ROTATE_Y, FALSE);
     if (running == FALSE) return;
 
+    mass = llGetObjectMass(llGetKey());
+
     make_region((vector) (string) params[2], (vector) (string) params[3]);
     g_scale = llGetScale();
     animation = LAND;
+
+    list f = llParseString2List((string) params[4], ["+"], []);
+    len = llGetListLength(f);
+    filters = [avatar];
+    while (len > 0) {
+      --len;
+      filters = [(key)(string)f[len]] + filters;
+    }
 
     channel = (integer) ("0x"+llGetSubString((string) llGetKey(), -6, -1));
     handle = llListen(channel, "", "", "");
@@ -263,9 +286,7 @@ default {
     state wander;
   }
 
-#define FILTERS [EyeOfEkron, avatar]
   listen(integer chan, string name, key xyzzy, string msg) {
-    filters = FILTERS;
     if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
     if (chan == 0) return;
@@ -285,26 +306,32 @@ default {
   state_exit() {
     llListenRemove(handle);
     llListenRemove(avatar_handle);
+    llSetTimerEvent(0);
   }
     
 }
 
 state wander {
   state_entry() {
-    llSleep(0.45+llFrand(1.5));
     list greetings = GREETINGS;
-    llShout(0, chatString((string) greetings[calculateIndex()]));
+    llMessageLinked(LINK_THIS,
+		    CHAT,
+		    chatString((string) greetings[calculateIndex()]),
+		    avatar);
     handle = llListen(channel, "", "", "");
     avatar_handle = llListen(0, "", avatar, "");
+    is_following = FALSE;
     llListenControl(avatar_handle, FALSE);
     llSetTimerEvent(0.5);         
-        // Initialize the first wander target
+    llSensorRepeat("", avatar, AGENT, 96.0, PI, 1.0);
+    // Initialize the first wander target
     pick_new_target();
   }
 
   state_exit() {
     llListenRemove(handle);
     llListenRemove(avatar_handle);
+    llSetTimerEvent(0);
   }
 
   sensor(integer num) {
@@ -314,15 +341,15 @@ state wander {
         // Check if the avatar is inside the defined region
     if (av_pos.x >= (REGION_MIN.x - 2) && av_pos.x <= (REGION_MAX.x + 2) &&
 	av_pos.y >= (REGION_MIN.y - 2) && av_pos.y <= (REGION_MAX.y + 2)) {
-      
+      //debug("in region");
+      if (!is_following) llListenControl(avatar_handle, TRUE);
       is_following = TRUE;
-      llListenControl(avatar_handle, TRUE);
-      vector behind_offset = llVecNorm(av_pos - llGetPos())*2.5;
-      vector ideal_pos = av_pos + behind_offset;
-            
-      // Ensure the follow point doesn't stray outside the region
-      current_target_pos = clamp_to_region(ideal_pos,0);
-      current_target_pos.z = av_pos.z; 
+      vector my_pos = llGetPos();
+      if (llVecDist(av_pos, current_target_pos) > 0.1) {
+	vector ideal_pos = av_pos - llVecNorm(av_pos - my_pos);
+	current_target_pos = clamp_to_region(ideal_pos,0);
+	current_target_pos.z = av_pos.z;
+      }
     } else {
       // Avatar is logged in, but outside the region bounds
       if (is_following) {
@@ -367,6 +394,9 @@ state wander {
 	// We are close enough to the follow spot, STAND
 	wander_state = 2;
 	moving = FALSE;
+#ifdef WALK_TIME
+	llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
+#endif
 	llStopMoveToTarget();
 	llRotLookAt(llDetectedRot(0), 1.0, 1.0); // Look the same direction as avatar
 	if (animation != STAND) {
@@ -384,6 +414,9 @@ state wander {
 	  // Reached destination, pick a new spot
 	  wander_state = 4;
 	  moving = FALSE;
+#ifdef WALK_TIME
+	llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
+#endif
 	  llStopMoveToTarget();
 	  wait_time = llGetUnixTime() + (integer) llFrand(15);
 	  clear_animation();
@@ -405,19 +438,18 @@ state wander {
 	  pick_new_target();
 	}
       }
-      llSensor("", avatar, AGENT, 96.0, PI);
     }
   }
     
   collision_start(integer num_detected)  {
     if (!moving || avatar == NULL_KEY) return;
     integer hits = obstacle();
-    //llSay(0, (string) hits);
     if (hits == 4 || hits == 0) return; // step or floor or nothing
-    //llSay(0,(string) hits);
+    debug("hits " +(string) hits);
     if (llDetectedType(0) & AGENT) {
       if (llDetectedKey(0) == avatar) is_following = TRUE;
-      llMessageLinked(LINK_THIS, BUMP, (string) llDetectedPos(0), llDetectedKey(0));
+      if (llAgentInExperience(llDetectedKey(0)))
+	llMessageLinked(LINK_THIS, BUMP, (string) llDetectedPos(0), llDetectedKey(0));
     } else {
       if (g_stuck_count > 3) g_wedged_count = g_stuck_count = 0; 
       llStopMoveToTarget();
@@ -426,19 +458,22 @@ state wander {
   }
   
   listen(integer chan, string name, key xyzzy, string msg) {
-    list filters = FILTERS;
     if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
     if (chan == 0) {
       switch (llToLower(msg)) {
       case llToLower(llGetObjectName()): {
-	llSay(0, "Here!");
+	llMessageLinked(LINK_THIS, CHAT,"That's my name.  Don't abuse it!", avatar);
 	break;
       }
       case "ok "+llToLower(llGetObjectName())+" let's wrestle.":
       case llToLower(llGetObjectName())+" let's wrestle.":
       case "let's wrestle": {
 	if (animation != "") llStopObjectAnimation(animation);
+#ifdef WALK_TIME
+	llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
+#endif
+	llStopMoveToTarget();
 	llMessageLinked(LINK_THIS, WRESTLE, avatar_json, avatar);
 	state wait;
       }
@@ -463,8 +498,7 @@ state wander {
 
 state wait {
   state_entry() {
-    filters = [];
-    handle = llListen(channel, "", EyeOfEkron, "");
+    handle = llListen(channel, "", NULL_KEY, "");
   }
 
   state_exit() {
@@ -472,6 +506,7 @@ state wait {
   }
 
   listen(integer chan, string name, key xyzzy, string msg) {
+    if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
     switch((string) params[0]) {
     case "STATUS": {

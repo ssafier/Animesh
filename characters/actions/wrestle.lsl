@@ -149,9 +149,14 @@ default {
 	integer flags = afCache | afStopAll;
 	if (llFrand(1.0) <= probability_of_win) {
 	  flags = flags | afSwap;
-	  llSay(0, chatString((string) win_quotes[(integer) llFrand(5)]));
+	  llMessageLinked(LINK_THIS,
+			  CHAT,
+			  chatString((string) win_quotes[(integer) llFrand(5)]),
+			  current_avatar);
 	} else {
-	  llSay(0, chatString((string) lose_quotes[(integer) llFrand(5)]));
+	  llMessageLinked(LINK_THIS, CHAT,
+			  chatString((string) lose_quotes[(integer) llFrand(5)]),
+			  current_avatar);
 	}
 	llMessageLinked(LINK_THIS, doAnimations,
 			animation + "|" + (string)flags, current_avatar);

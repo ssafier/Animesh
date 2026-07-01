@@ -8,7 +8,7 @@
 #define EyeOfEkron (key) "d7313cec-6f94-8ea0-6359-c2ad0b922f52"
 #endif
 
-#define TELEPORTER (key) "07507936-095d-563e-d670-92bf1dd4fba9"
+#define TELEPORTER (key) "d3ddc622-7bb6-3a18-8ff6-685fc25d0ee5"
 
 #define GREET 2000
 #define REZ_GREETER 2001
@@ -52,6 +52,8 @@ default {
   state_entry() {
     greeters = [
 #ifndef DEBUGGING
+		"Spiderman", NULL_KEY, NULL_KEY,
+		"Snow Symbiote", NULL_KEY, NULL_KEY,
 		"Azazel", NULL_KEY, NULL_KEY,
 		"Firestorm", NULL_KEY, NULL_KEY,
 		"Rogue", NULL_KEY, NULL_KEY,

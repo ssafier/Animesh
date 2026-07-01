@@ -50,6 +50,7 @@
 #define SitChannel 113
 #define UnSit 114
 #define LOOP_WALK 115
+#define STOP_WALK -115
 
 #define DETECTED 120
 #define SCAN 121
@@ -68,17 +69,23 @@
 #define PING_BACK 2027
 
 // Config and Menu
-#define doMenu 2
-#define menuOff -2
-#define sitAvatar 3
+// 2 is no agents
+// 3 is nochange
+
 #define getLeaf 4
 #define returnLeaf 5
 #define MENU_FAIL 6
+#define CHAT 7
+// 8 is get strength
 #define doAnimations 10
 #define registerSequence 11
 #define runSequence 12
 #define stopSequence 13
 #define resetAnimationState 15
+
+#define doMenu 22
+#define menuOff -22
+#define sitAvatar 23
 
 #define ACTION_OFF 48
 #define avatarSeated 49

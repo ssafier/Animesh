@@ -1,24 +1,19 @@
 #include "include/animesh.h"
 #include "include/controlstack.h"
-#define noAgents  2
 
-#ifdef DEBUGGING
-#define EyeOfEkron (key) "6456374b-8b39-f398-1233-e4ba1a4a7835"
-#else
-#define EyeOfEkron (key) "d7313cec-6f94-8ea0-6359-c2ad0b922f52"
-#endif
+#define TIME 7.5
+
+#define noAgents  2
 
 #define GREET 2000
 #define REZ_GREETER 2001
 #define FREE_GREETER 2003
 #define FREE_GREETER_BY_AVATAR 2004
-
-integer handle;
-integer brain;
+#define PROCESS 2005
 
 list npc;
 
-#define RING 0
+#define RING 9
 #define LIGHTNING 1
 #define RAIN 2
 #define GREEN_RAIN 3
@@ -43,7 +38,7 @@ ring() {
 				     | PSYS_PART_FOLLOW_SRC_MASK 
 				     | PSYS_PART_FOLLOW_VELOCITY_MASK 
 				     | PSYS_PART_TARGET_POS_MASK 
-				     ),PSYS_SRC_TARGET_KEY,llGetKey(),
+				     ),PSYS_SRC_TARGET_KEY,llGetLinkKey(top),
 		    PSYS_PART_START_COLOR,<0.50000, 0.80000, 1.00000>,
 		    PSYS_PART_END_COLOR,<0.00000, 0.50000, 1.00000>,
 		    PSYS_PART_START_ALPHA,0.350000,
@@ -97,9 +92,9 @@ lightning() {
 
 default {
   state_entry() {
-    brain = 0x922f52 + 1;
-    handle = llListen(brain, "", EyeOfEkron, "");
     npc = [
+	   "Spiderman", GREEN_RAIN,
+	   "Snow Symbiote", RAIN,
 	   "Azazel", RED_RAIN,
 	   "Firestorm", RING,
 	   "Rogue", RING,
@@ -131,12 +126,12 @@ default {
       list params = llGetLinkPrimitiveParams(currentLinkNumber,
 					     [PRIM_NAME]);
       switch((string) params[0]) {
-      case "Teleport top": {
+      case "teleport top": {
 	top = currentLinkNumber;
 	break;
       }
-      case "Teleport bottom": {
-	top = currentLinkNumber;
+      case "Teleporter": {
+	bottom = currentLinkNumber;
 	break;
       }
       default: break;
@@ -146,26 +141,25 @@ default {
 
     list o = llGetLinkPrimitiveParams(LINK_ROOT, [PRIM_POSITION]);
     vector middle = (vector) o[0];
-    o = llGetLinkPrimitiveParams(top, [PRIM_POS_LOCAL]);
-    vector top = (vector) o[0];    
     rez_pos = middle;
     rez_pos.z += 1;
-    llSetLinkPrimitiveParamsFast(LINK_SET,
+    llSetLinkPrimitiveParamsFast(top,
 				 [PRIM_PHANTOM, TRUE,
 				  PRIM_COLOR, ALL_SIDES, <1,1,1>, 0]); // make 0
   }
-  listen(integer chan, string name, key xyzzy, string msg) {
+  link_message(integer from, integer chan, string msg, key xyzzy) {
+    if (chan != PROCESS) return;
     integer index = llSubStringIndex(msg, "|");
     string animesh = llGetSubString(msg,0,index-1);
-    integer idx = llSubStringIndex(msg, animesh);
+    integer idx = llListFindList(npc, [animesh]);
     switch ((integer) npc[idx + 1]) {
     case RING: {
-      llSetTimerEvent(5);
+      llSetTimerEvent(TIME);
       ring();
       break;
     }
     case LIGHTNING: {
-      llSetTimerEvent(5);
+      llSetTimerEvent(TIME);
       lightning();
       break;
     }
@@ -199,12 +193,13 @@ default {
     }
     default: break;
     }
+    llTriggerSound("transporter", 1.0);
+    llSleep(1);
     key obj = llRezObjectWithParams(animesh,
 				    [REZ_POS, rez_pos, FALSE, TRUE,
 				     REZ_PARAM, 1,
 				     REZ_ROT, ZERO_ROTATION, FALSE,
 				     REZ_PARAM_STRING,llGetSubString(msg, index + 1, -1)]);
-    llRegionSayTo(EyeOfEkron, brain, (string) obj);
   }
   timer() {
     llSetTimerEvent(0);
