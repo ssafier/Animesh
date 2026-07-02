@@ -1,5 +1,6 @@
-#include "include/animesh.h"
-#include "include/controlstack.h"
+#include "src/animesh/include/animesh.h"
+#include "src/animesh/include/controlstack.h"
+#include "src/animesh/include/npc.h"
 
 #define PROCESS 2005
 #define DIST <2,2,0>
@@ -32,7 +33,9 @@ default {
     if (status == 200 && body != "") {
       json = body;
       last_animesh = NULL_KEY;
-      llMessageLinked(LINK_THIS, doMenu, "501|Rez a wrestler|Spiderman+Snow Symbiote+Azazel+Firestorm+Rogue+Northstar+Human Torch+Ben Grimm+Batman+Damien Wayne+Red Robin+Harley Quinn+Dark Phoenix+Flash+Reverse Flash+Thor Odinson+Ironman+Hal Jordan+Captain America+Lobo+Adam Warlock+Amazon+Red Hulk+Invincible+Omni-Man", avatar);
+      list l = NPCs;
+      string npcs = llDumpList2String(llListSort(llList2ListSlice(l, 0, -1, 2, 0), 1, FALSE), "+");
+      llMessageLinked(LINK_THIS, doMenu, "501|Rez a wrestler|"+npcs, avatar);
     }
   }
   link_message(integer from, integer chan, string msg, key xyzzy) {

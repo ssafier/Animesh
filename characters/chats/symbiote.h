@@ -1,4 +1,4 @@
-#define ANIMESH_STRENGTH 99000
+#define ANIMESH_STRENGTH 90000
 #define WALK_TIME 15.75
 #define STAND "Explosive animation - BAttle Posing"
 #define LAND "Explosive animation - Male Crouch Pose 2"

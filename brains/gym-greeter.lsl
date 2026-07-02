@@ -52,6 +52,10 @@ default {
   state_entry() {
     greeters = [
 #ifndef DEBUGGING
+		"Hulk", NULL_KEY, NULL_KEY,
+		"Gladiator", NULL_KEY, NULL_KEY,
+		"Conquest", NULL_KEY, NULL_KEY,
+		"Gambit", NULL_KEY, NULL_KEY,
 		"Spiderman", NULL_KEY, NULL_KEY,
 		"Snow Symbiote", NULL_KEY, NULL_KEY,
 		"Azazel", NULL_KEY, NULL_KEY,
