@@ -62,18 +62,19 @@ default {
     // Record the starting position and rotation
     g_closedPos = llGetLocalPos();
     g_closedRot = llGetLocalRot(); 
-    llListen(0,"Emil Bronsky", (key) "fd8154a7-d9fb-5435-bb31-dcf1545b41a5", "");
+    llListen(3,"", (key) "1c62e572-0450-17f0-9b4d-80344a35c06b", "");
   }
 
   touch_start(integer total_number) {
     // Prevent the door from being clicked multiple times while it's still swinging
     if (g_isMoving) return;
         
+    if (g_isOpen) llSetTimerEvent(0); else llSetTimerEvent(30);
     animate_door(!g_isOpen);
   }
 
   listen(integer chan, string name, key xyzzy, string msg) {
-    llSay(0,name+" "+(string)xyzzy);
+    //    llSay(0,name+" "+(string)xyzzy);
     switch(msg) {
     case "open": {
       if (!g_isOpen) {

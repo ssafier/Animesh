@@ -53,6 +53,8 @@ default {
     greeters = [
 #ifndef DEBUGGING
 		"Hulk", NULL_KEY, NULL_KEY,
+		"Colossus", NULL_KEY, NULL_KEY,
+		"Ares", NULL_KEY, NULL_KEY,
 		"Gladiator", NULL_KEY, NULL_KEY,
 		"Conquest", NULL_KEY, NULL_KEY,
 		"Gambit", NULL_KEY, NULL_KEY,
