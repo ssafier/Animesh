@@ -6,7 +6,7 @@
 #endif
 
 #ifndef STEP
-#define STEP 0.5
+#define STEP 0.75
 #endif
 
 #ifndef debug
@@ -31,10 +31,6 @@ integer sml;
 integer rp;
 string rp_name;
 integer sps;
-
-#define TAU 0.5
-#define BASE_MASS 7.5
-float mass;
 
 integer is_following;
 vector REGION_MIN;
@@ -95,7 +91,7 @@ pick_new_target() {
     current_target_pos = llGetPos();
     current_target_pos.x = rx;
     current_target_pos.y = ry;
-    g_tau = TAU * (mass / BASE_MASS);
+    g_tau = llVecDist(llGetPos(), current_target_pos) / STEP;
     move_to_target();
 }
 
@@ -129,7 +125,7 @@ integer stuck(vector pos) {
       if (g_wedged_count > 3) {
 	debug("wedged");
 	g_wedged_count = 0;
-	llMoveToTarget(home, 0.1);
+	llMoveToTarget(home, 1);
       }
       pick_new_target();
       g_stuck_count = 0;
@@ -256,8 +252,6 @@ default {
     llSetStatus(STATUS_ROTATE_X | STATUS_ROTATE_Y, FALSE);
     if (running == FALSE) return;
 
-    mass = llGetObjectMass(llGetKey());
-
     make_region((vector) (string) params[2], (vector) (string) params[3]);
     g_scale = llGetScale();
     animation = LAND;
@@ -321,6 +315,8 @@ state wander {
     handle = llListen(channel, "", "", "");
     avatar_handle = llListen(0, "", avatar, "");
     is_following = FALSE;
+    wander_state = 0;
+    moving = FALSE;
     llListenControl(avatar_handle, FALSE);
     llSetTimerEvent(0.5);         
     llSensorRepeat("", avatar, AGENT, 96.0, PI, 1.0);
@@ -331,6 +327,7 @@ state wander {
   state_exit() {
     llListenRemove(handle);
     llListenRemove(avatar_handle);
+    llSensorRemove();
     llSetTimerEvent(0);
   }
 
@@ -477,6 +474,27 @@ state wander {
 	llMessageLinked(LINK_THIS, WRESTLE, avatar_json, avatar);
 	state wait;
       }
+#ifdef SPOTTER
+      case "spot me":
+      case "spot me.": {
+	// Determine the root object of the user
+	key root_id = llList2Key(llGetObjectDetails(avatar, [OBJECT_ROOT]), 0);
+    
+	// If the root is the user's own UUID, they are standing.
+	// If it's a different UUID, they are sitting on an object!
+	if (root_id != user_id && root_id != NULL_KEY) {
+        
+	  // Send a direct message to the machine they are sitting on
+	  // Format:  action | user_uuid | my_animesh_uuid | role_requested
+	  string msg = "offer_service|" + (string)user_id + "|" + (string)llGetKey() + "|trainer";
+	  
+	  llRegionSayTo(root_id, SYSTEM_CHANNEL, msg);
+	  
+	} else {
+	  llRegionSayTo(avatar, 0, "You need to be on the machine first, dummy.");
+	}
+      }
+#endif
       default:break;
       }
       return;
