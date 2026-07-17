@@ -3,7 +3,7 @@
 #include "src/animesh/include/npc.h"
 
 #define PROCESS 2005
-#define DIST <2,2,0>
+#define DIST <10,10,0>
 
 integer handle;
 integer channel;
