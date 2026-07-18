@@ -46,6 +46,7 @@ animate(key agent) {
   if (flags & afStopAll) {
     debug("stop");
     stopAllAnims(agent);
+    stopAllObjectAnims();
   }
   integer replace = (flags & afReplace) != 0;
   if (replace) {
@@ -58,7 +59,9 @@ animate(key agent) {
     translation = [(string) temp[1], (string) temp[0]];
   }
   if ((flags & afCache) != 0) {
-    if (!replace && (translation != cached_animation)) {
+    if (!replace &&
+	((string) translation[0] != (string) cached_animation[0] &&
+	 (string) translation[1] != (string) cached_animation[1])) {
       llStopAnimation((string) cached_animation[0]);
       llStopObjectAnimation((string) cached_animation[1]);
     }
@@ -93,8 +96,8 @@ default {
     cached_animation = ["stand","stand"];
     poses = [];
 
-    integer objectPrimCount = llGetObjectPrimCount(llGetKey());
-    integer currentLinkNumber = 0;
+    integer objectPrimCount = llGetObjectPrimCount(llGetKey()) + 1;
+    integer currentLinkNumber = 1;
     avatar_prim = -1;
     while(currentLinkNumber <= objectPrimCount && avatar_prim == -1) {
       list params = llGetLinkPrimitiveParams(currentLinkNumber,
