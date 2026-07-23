@@ -9,17 +9,19 @@ default {
       llSetTimerEvent(0);
       if (animation != "") llStopObjectAnimation(animation);
       animation = "";
+      walking = FALSE;
       return;
     }
     if (chan != LOOP_WALK) return;
-    if (walking) return;
-    walking = TRUE;
     list params = llParseStringKeepNulls(msg, ["|"], []);
+    if (walking && animation == (string) params[0]) return;
+    walking = TRUE;
     float time = (float)(string)params[1];
     if (animation != "") llStopObjectAnimation(animation);
     if (time < 0.01) {
       llSetTimerEvent(0);
       animation = "";
+      walking = FALSE;
       return;
     }
     llStartObjectAnimation(animation = (string) params[0]);
