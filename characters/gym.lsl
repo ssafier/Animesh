@@ -6,7 +6,7 @@
 #endif
 
 #ifndef STEP
-#define STEP 0.75
+#define STEP 1.6667
 #endif
 
 #ifndef debug

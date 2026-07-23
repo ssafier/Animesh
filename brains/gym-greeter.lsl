@@ -52,6 +52,7 @@ default {
   state_entry() {
     greeters = [
 #ifndef DEBUGGING
+		"Prime", NULL_KEY, NULL_KEY,
 		"Hulk", NULL_KEY, NULL_KEY,
 		"Colossus", NULL_KEY, NULL_KEY,
 		"Ares", NULL_KEY, NULL_KEY,

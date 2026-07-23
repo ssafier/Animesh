@@ -21,6 +21,7 @@
 	   "Firestorm", RING, \
 	   "Rogue", RING, \
 	   "Northstar", RING, \
+	   "Prime", RED_RAIN, \
 	   "Human Torch", RING, \
 	   "Ben Grimm", RING, \
 	   "Batman", RING, \

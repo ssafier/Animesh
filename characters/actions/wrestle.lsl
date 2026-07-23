@@ -107,8 +107,8 @@ default {
       index = strength2index(strength) * 5;
       win_quotes = WrestleWin;
       lose_quotes =WrestleDefeat;
-      win_quotes = llList2List(win_quotes, index, index + 4);
-      lose_quotes = llList2List(lose_quotes, index, index + 4);
+      win_quotes = llList2List(win_quotes, 0, index + 4);
+      lose_quotes = llList2List(lose_quotes, 0, index + 4);
       probability_of_win = ProbabilityWin((float) strength, ANIMESH_STRENGTH);
       llMessageLinked(LINK_THIS, sitAvatar, msg, xyzzy);
       break;
@@ -151,11 +151,11 @@ default {
 	  flags = flags | afSwap;
 	  llMessageLinked(LINK_THIS,
 			  CHAT,
-			  chatString((string) win_quotes[(integer) llFrand(5)]),
+			  chatString((string) win_quotes[(integer) llFrand(llGetListLength(win_quotes))]),
 			  current_avatar);
 	} else {
 	  llMessageLinked(LINK_THIS, CHAT,
-			  chatString((string) lose_quotes[(integer) llFrand(5)]),
+			  chatString((string) lose_quotes[(integer) llFrand(llGetListLength(lose_quotes))]),
 			  current_avatar);
 	}
 	llMessageLinked(LINK_THIS, doAnimations,

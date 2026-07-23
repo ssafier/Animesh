@@ -26,6 +26,7 @@ default {
     llSetTimerEvent(time);
   }
   timer() {
+    llStopObjectAnimation(animation);
     llStartObjectAnimation(animation);
   }
 }
