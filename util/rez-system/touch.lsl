@@ -12,8 +12,6 @@ key avatar;
 key httpKey;
 string json;
 
-key last_animesh;
-
 default {
   state_entry() {
     channel = (integer)("0x"+llGetSubString((string)llGetKey(), -4, -1));
@@ -24,15 +22,13 @@ default {
     avatar = llDetectedKey(0);
     string request = "http://scott-safier.com/evolution/strength/" +
       llEscapeURL((string) avatar);
-    if (last_animesh != NULL_KEY)
-      llMessageLinked(LINK_THIS, 502, "", last_animesh);
+    llMessageLinked(LINK_THIS, 502, "", avatar);
     httpKey = llHTTPRequest(request, [], "");
   }
   http_response(key request_id, integer status, list metadata, string body) {
     if (request_id != httpKey) return;
     if (status == 200 && body != "") {
       json = body;
-      last_animesh = NULL_KEY;
       list l = NPCs;
       string npcs = llDumpList2String(llListSort(llList2ListSlice(l, 0, -1, 2, 0), 1, FALSE), "+");
       llMessageLinked(LINK_THIS, doMenu, "501|Rez a wrestler|"+npcs, avatar);
@@ -54,6 +50,4 @@ default {
 		    + (string) v1 + "|" + (string) v2 + "|" + (string) llGetKey(), 
 		    xyzzy);
   }
-
-  object_rez(key o) { last_animesh = o; }
 }

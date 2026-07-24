@@ -290,6 +290,9 @@ default {
 		    "STATUS|" + (string) status + "|" + (string) llGetPos());
       break;
     }
+    case "FREE-IF": {
+      if (avatar != (key) (string) params[1]) return;
+    }
     case "FREE": {
       llDie();
       break;
@@ -505,6 +508,9 @@ state wander {
 		    "STATUS|" + (string) status + "|" + (string) llGetPos());
       break;
     }
+    case "FREE-IF": {
+      if (avatar != (key) (string) params[1]) return;
+    }
     case "FREE": {
       llDie();
 	break;
@@ -531,6 +537,9 @@ state wait {
       llRegionSayTo(EyeOfEkron, brain,
 		    "STATUS|" + (string) status + "|" + (string) llGetPos());
       break;
+    }
+    case "FREE-IF": {
+      if (avatar != (key) (string) params[1]) return;
     }
     case "FREE": {
       llDie();
