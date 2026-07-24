@@ -1,5 +1,5 @@
 #define ANIMESH_STRENGTH 99900 
-#define STAND "Jeff Hampton Posing Routine 1 MR OLYMPIA"
+#define STAND "Explosive animation - Chest Pound"
 #define LAND "Explosive animation - Male Crouch Pose 4"
 #define WALK_TIME 4.70
 #define WALK "Explosive animation - Walk 21 Proud Physical no loop"
