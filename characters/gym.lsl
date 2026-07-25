@@ -21,7 +21,6 @@ list filters;
 
 integer status;
 string animation;
-integer running;
 
 key avatar;
 string avatar_json;
@@ -50,20 +49,15 @@ vector g_last_pos;
 integer g_stuck_count = 0;
 integer g_wedged_count = 0;
 
-#ifdef WALK_TIME
 clear_animation() {
-  if (animation == WALK) {
-    llMessageLinked(LINK_THIS, LOOP_WALK, "|0", NULL_KEY);
+  if (llLinksetDataRead("walk-loop") == "0" && animation == llLinksetDataRead("walk")) {
+    llMessageLinked(LINK_THIS, STOP_WALK, "|", NULL_KEY);
   }
   if (animation != "") {
     llStopObjectAnimation(animation); animation = "";
   }
 }
 #define stop_animation() if (animation != "") { llStopObjectAnimation(animation); animation = ""; }
-#else
-#define clear_animation() if (animation != "") { llStopObjectAnimation(animation); animation = ""; }
-#define stop_animation() clear_animation()
-#endif
 
 make_region(vector a, vector b) {
   vector min;
@@ -192,7 +186,7 @@ string chatString(string s) {
     llGetSubString(s, idx + 2, -1);
 }
 
-integer calculateIndex() {
+string calculateGreeting() {
   integer g = 0;
   if (sml > 0) {
     if (sml > 20000)
@@ -226,17 +220,16 @@ integer calculateIndex() {
     if (h > g) g = h;
   }
   if (g > 0) g--;
-  g = g * 5 + (integer) llFrand(5);
-  return g;
+  return llLinksetDataRead("hello-"+(string) (g * 5 + (integer) llFrand(5) + 1));
 }
 
 default {
-  on_rez(integer ignore) {
+  link_message(integer from, integer chan, string msg, key xyzzy) {
+    if (chan != 333) return;
     home = llGetPos();
-    list params = llParseString2List(llGetStartString(), ["|"], []);
+    list params = llParseString2List(msg, ["|"], []);
     avatar = (key) params[0];
 
-    avatar_json = (string) params[1];
     list anims = llGetObjectAnimationNames();
     integer len = llGetListLength(anims);
     while(len) {
@@ -244,17 +237,15 @@ default {
       llStopObjectAnimation((string) anims[len]);
     }
 
-    running = (ignore == 1);
+    avatar_json = (string) params[1];
     parse_json();
     wander_state = 0;
 
     llSetStatus(STATUS_PHYSICS, TRUE);
     llSetStatus(STATUS_ROTATE_X | STATUS_ROTATE_Y, FALSE);
-    if (running == FALSE) return;
 
     make_region((vector) (string) params[2], (vector) (string) params[3]);
     g_scale = llGetScale();
-    animation = LAND;
 
     list f = llParseString2List((string) params[4], ["+"], []);
     len = llGetListLength(f);
@@ -269,6 +260,7 @@ default {
     avatar_handle = llListen(0, "", avatar, "");
     llListenControl(avatar_handle, FALSE);
     status = 7; // GREETING
+    animation = llLinksetDataRead("land");;
     llStartObjectAnimation(animation);
     llSetTimerEvent(1.25);
   }
@@ -276,7 +268,7 @@ default {
   timer() {
     llSetTimerEvent(0);
     clear_animation();
-    llStartObjectAnimation(animation = STAND);
+    llStartObjectAnimation(animation = llLinksetDataRead("stand"));
     state wander;
   }
 
@@ -310,11 +302,7 @@ default {
 
 state wander {
   state_entry() {
-    list greetings = GREETINGS;
-    llMessageLinked(LINK_THIS,
-		    CHAT,
-		    chatString((string) greetings[calculateIndex()]),
-		    avatar);
+    llMessageLinked(LINK_THIS, CHAT, chatString(calculateGreeting()), avatar);
     handle = llListen(channel, "", "", "");
     avatar_handle = llListen(0, "", avatar, "");
     is_following = FALSE;
@@ -378,14 +366,15 @@ state wander {
       wander_state = 1;
       if (dist > 2.5) {
 	// We are more than 1.5m away from the follow spot, WALK to it
-	if (animation != WALK) {
+	if (animation != llLinksetDataRead("walk")) {
 	  stop_animation();
-#ifdef WALK_TIME
-	  llMessageLinked(LINK_THIS, LOOP_WALK,
-			  WALK + "|" + (string) WALK_TIME, NULL_KEY);
-#else
-	  llStartObjectAnimation(animation = WALK);
-#endif
+	  if (llLinksetDataRead("walk-loop") == "0") {
+	    llMessageLinked(LINK_THIS, LOOP_WALK,
+			    llLinksetDataRead("walk") + "|" + (string) llLinksetDataRead("walk-time"),
+			    NULL_KEY);
+	  } else {
+	    llStartObjectAnimation(animation = llLinksetDataRead("walk"));
+	  }
 	}
 	moving = TRUE;
 	if (stuck(my_pos)) return;
@@ -394,14 +383,14 @@ state wander {
 	// We are close enough to the follow spot, STAND
 	wander_state = 2;
 	moving = FALSE;
-#ifdef WALK_TIME
-	llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
-#endif
+	if (llLinksetDataRead("walk-loop") == "0") {
+	  llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
+	}
 	llStopMoveToTarget();
 	llRotLookAt(llDetectedRot(0), 1.0, 1.0); // Look the same direction as avatar
-	if (animation != STAND) {
+	if (animation != llLinksetDataRead("stand")) {
 	  clear_animation();
-	  llStartObjectAnimation(animation = STAND);
+	  llStartObjectAnimation(animation = llLinksetDataRead("stand"));
 	}
       }
     } else {
@@ -414,13 +403,13 @@ state wander {
 	  // Reached destination, pick a new spot
 	  wander_state = 4;
 	  moving = FALSE;
-#ifdef WALK_TIME
-	llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
-#endif
+	  if (llLinksetDataRead("walk-loop") == "0") {
+	    llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
+	  }
 	  llStopMoveToTarget();
 	  wait_time = llGetUnixTime() + (integer) llFrand(15);
 	  clear_animation();
-	  llStartObjectAnimation(animation = STAND);
+	  llStartObjectAnimation(animation = llLinksetDataRead("stand"));
 	} else {
 	  move_to_target();
 	}
@@ -429,12 +418,14 @@ state wander {
 	  wander_state = 3;
 	  moving = TRUE;
 	  stop_animation();
-#ifdef WALK_TIME
-	  llMessageLinked(LINK_THIS, LOOP_WALK,
-			  "|" + WALK + "|" + (string) WALK_TIME, NULL_KEY);
-#else
-	  llStartObjectAnimation(animation = WALK);
-#endif
+	  if (llLinksetDataRead("walk-loop") == "0") {
+	    llMessageLinked(LINK_THIS, LOOP_WALK,
+			  "|" + llLinksetDataRead("walk") +
+			    "|" + llLinksetDataRead("walk-time"),
+			    NULL_KEY);
+	  } else {
+	    llStartObjectAnimation(animation = llLinksetDataRead("walk"));
+	  }
 	  pick_new_target();
 	}
       }
@@ -470,9 +461,9 @@ state wander {
       case llToLower(llGetObjectName())+" let's wrestle.":
       case "let's wrestle": {
 	if (animation != "") llStopObjectAnimation(animation);
-#ifdef WALK_TIME
-	llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
-#endif
+	if (llLinksetDataRead("walk-loop") == "0") {
+	  llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
+	}
 	llStopMoveToTarget();
 	llMessageLinked(LINK_THIS, WRESTLE, avatar_json, avatar);
 	state wait;

@@ -11,13 +11,12 @@
 #define EyeOfEkron (key) "d7313cec-6f94-8ea0-6359-c2ad0b922f52"
 #endif
 
+integer quotes;
+
 integer avatar_prim;
 key current_avatar;
 float probability_of_win;
 integer handle;
-
-list win_quotes;
-list lose_quotes;
 
 integer max(integer a,integer b) { if (a > b) return a; return b; }
 #define set_max(a, b) a = max(a, b)
@@ -105,11 +104,11 @@ default {
       string avatar_json = llGetSubString(msg, index + 1, -1);
       integer strength = avatar_strength(avatar_json);
       index = strength2index(strength) * 5;
-      win_quotes = WrestleWin;
-      lose_quotes =WrestleDefeat;
-      win_quotes = llList2List(win_quotes, 0, index + 4);
-      lose_quotes = llList2List(lose_quotes, 0, index + 4);
-      probability_of_win = ProbabilityWin((float) strength, ANIMESH_STRENGTH);
+
+      quotes = index + 4;
+
+      probability_of_win = ProbabilityWin((float) strength,
+					  (float) llLinksetDataRead("strength"));
       llMessageLinked(LINK_THIS, sitAvatar, msg, xyzzy);
       break;
     }
@@ -149,13 +148,12 @@ default {
 	integer flags = afCache | afStopAll;
 	if (llFrand(1.0) <= probability_of_win) {
 	  flags = flags | afSwap;
-	  llMessageLinked(LINK_THIS,
-			  CHAT,
-			  chatString((string) win_quotes[(integer) llFrand(llGetListLength(win_quotes))]),
+	  string s = "win-" + (string) ((integer) llFrand(quotes) + 1);
+	  llMessageLinked(LINK_THIS, CHAT, chatString(llLinksetDataRead(s)),
 			  current_avatar);
 	} else {
-	  llMessageLinked(LINK_THIS, CHAT,
-			  chatString((string) lose_quotes[(integer) llFrand(llGetListLength(lose_quotes))]),
+	  string s = "defeat-" + (string) ((integer) llFrand(quotes) + 1);
+	  llMessageLinked(LINK_THIS, CHAT, chatString(llLinksetDataRead(s)),
 			  current_avatar);
 	}
 	llMessageLinked(LINK_THIS, doAnimations,
