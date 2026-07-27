@@ -181,7 +181,11 @@ default {
 	llInstantMessage(current_avatar, "Adjust your position using Pgup/Pgdn, Up/Down arrow, and shift-left/right arrow keys\nDisable by pressing Pgup and Pgdn keys at the same time");
 	break;
     }
-    default: break;
+    default: {
+      llSleep(1 + llFrand(1.5));
+      llSay(0, llLinksetDataRead("smack-"+(string)((integer) llFrand(25) + 1)));
+      break;
+    }
     }
   }
 }

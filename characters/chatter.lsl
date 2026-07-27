@@ -17,7 +17,11 @@ string animation;
 vector pos;
 rotation rot;
 
-#define Chat(msg) llSleep(1.5 + llFrand(1.5)); llSay(0, msg);
+#define Chat(msg) llSleep(1.5 + llFrand(1.5)); llShout(0, msg);
+
+key await_from;
+string await_str;
+string saying;
 
 respond2Command(key from, string msg) {
   list chat;
@@ -38,6 +42,22 @@ respond2Command(key from, string msg) {
   }
 #endif
   case EyeOfEkron: {
+    list params = llParseStringKeepNulls(msg,["|"],[]);
+    switch ((string) params[0]) {
+    case "CHAT": {
+      await_from = (key)(string)params[1];
+      await_str = (string) params[2];
+      saying = (string) params[3];
+      //llOwnerSay(msg);
+      if (await_from == NULL_KEY) {
+	llSleep(3.5);
+	Chat(saying);
+	saying = "";
+      }
+      break;
+    }
+    default: break;
+    }
     break;
   }
   default: break;
@@ -103,9 +123,22 @@ default {
     list o = llGetPrimitiveParams([PRIM_POSITION, PRIM_ROTATION]);
     pos = (vector) o[0];
     rot = (rotation) o[1];
+    // for conversations
+    await_from = NULL_KEY;
+    saying = await_str = "";
     llSetTimerEvent(60);
   }
   listen(integer chan, string name, key xyzzy, string msg) {
+    if (chan == 0 &&
+	await_from != NULL_KEY &&
+	await_from == xyzzy &&
+	msg == await_str) {
+      Chat(saying);
+      await_from = NULL_KEY;
+      await_str = saying = "";
+      return;
+    }
+
     list filters = Filters;
     if (llListFindList(filters, [xyzzy]) == -1) return;
     switch (chan) {

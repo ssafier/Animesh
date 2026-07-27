@@ -16,6 +16,7 @@
 integer brain = 0x922f52;
 integer channel;
 integer handle;
+integer public;
 
 list filters;
 
@@ -48,6 +49,14 @@ integer wait_time;
 vector g_last_pos;
 integer g_stuck_count = 0;
 integer g_wedged_count = 0;
+
+#define Chat(msg) llSleep(1.5 + llFrand(1.5)); llShout(0, msg);
+
+key await_from;
+string await_str;
+string saying;
+
+float waiting_time;
 
 clear_animation() {
   if (llLinksetDataRead("walk-loop") == "0" && animation == llLinksetDataRead("walk")) {
@@ -257,7 +266,7 @@ default {
 
     channel = (integer) ("0x"+llGetSubString((string) llGetKey(), -6, -1));
     handle = llListen(channel, "", "", "");
-    avatar_handle = llListen(0, "", avatar, "");
+    avatar_handle = llListen(0, "",NULL_KEY , "");
     llListenControl(avatar_handle, FALSE);
     status = 7; // GREETING
     animation = llLinksetDataRead("land");;
@@ -269,14 +278,37 @@ default {
     llSetTimerEvent(0);
     clear_animation();
     llStartObjectAnimation(animation = llLinksetDataRead("stand"));
+    waiting_time = 45 + llFrand(45);
     state wander;
   }
 
   listen(integer chan, string name, key xyzzy, string msg) {
+    if (chan == 0) {
+      if (await_from != NULL_KEY &&
+	  await_from == xyzzy &&
+	  msg == await_str) {
+	Chat(saying);
+	llListenControl(avatar_handle, FALSE);
+	await_from = NULL_KEY;
+	await_str = saying = "";
+      }
+      return;
+    }
     if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
-    if (chan == 0) return;
     switch((string) params[0]) {
+    case "CHAT": {
+      await_from = (key)(string)params[1];
+      await_str = (string) params[2];
+      saying = (string) params[3];
+      if (await_from == NULL_KEY) {
+	Chat(saying);
+	saying = "";
+      } else {
+	llListenControl(avatar_handle, TRUE);
+      }
+      break;
+    }
     case "STATUS": {
       llRegionSayTo(EyeOfEkron, brain,
 		    "STATUS|" + (string) status + "|" + (string) llGetPos());
@@ -304,7 +336,7 @@ state wander {
   state_entry() {
     llMessageLinked(LINK_THIS, CHAT, chatString(calculateGreeting()), avatar);
     handle = llListen(channel, "", "", "");
-    avatar_handle = llListen(0, "", avatar, "");
+    avatar_handle = llListen(0, "", NULL_KEY, "");
     is_following = FALSE;
     wander_state = 0;
     moving = FALSE;
@@ -361,6 +393,12 @@ state wander {
   timer() {
     vector my_pos = llGetPos();
     float dist = llVecDist(my_pos, current_target_pos);
+
+    waiting_time = waiting_time - 0.5;
+    if (waiting_time < 0) {
+      llShout(0, chatString(llLinksetDataRead("wait-"+(string)((integer) llFrand(15) + 1))));
+      waiting_time = 45 + llFrand(45);
+    }
       
     if (is_following) { // target set in sensor
       wander_state = 1;
@@ -449,6 +487,17 @@ state wander {
   }
   
   listen(integer chan, string name, key xyzzy, string msg) {
+    if (chan == 0) {
+      if (await_from != NULL_KEY &&
+	  await_from == xyzzy &&
+	  msg == await_str) {
+	Chat(saying);
+	await_from = NULL_KEY;
+	await_str = saying = "";
+	return;
+      }
+      if (xyzzy != avatar) return;
+    }
     if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
     if (chan == 0) {
@@ -494,6 +543,16 @@ state wander {
       return;
     }
     switch((string) params[0]) {
+    case "CHAT": {
+      await_from = (key)(string)params[1];
+      await_str = (string) params[2];
+      saying = (string) params[3];
+      if (await_from == NULL_KEY) {
+	Chat(saying);
+	saying = "";
+      }
+      break;
+    }
     case "STATUS": {
       llRegionSayTo(EyeOfEkron, brain,
 		    "STATUS|" + (string) status + "|" + (string) llGetPos());
@@ -514,6 +573,8 @@ state wander {
 state wait {
   state_entry() {
     handle = llListen(channel, "", NULL_KEY, "");
+    avatar_handle = llListen(0, "", NULL_KEY, "");
+    llListenControl(avatar_handle, await_from != NULL_KEY);
   }
 
   state_exit() {
@@ -521,9 +582,32 @@ state wait {
   }
 
   listen(integer chan, string name, key xyzzy, string msg) {
+    if (chan == 0) {
+      if (await_from != NULL_KEY &&
+	  await_from == xyzzy &&
+	  msg == await_str) {
+	Chat(saying);
+	llListenControl(avatar_handle, FALSE);
+	await_from = NULL_KEY;
+	await_str = saying = "";
+      }
+      return;
+    }
     if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
     switch((string) params[0]) {
+    case "CHAT": {
+      await_from = (key)(string)params[1];
+      await_str = (string) params[2];
+      saying = (string) params[3];
+      if (await_from == NULL_KEY) {
+	Chat(saying);
+	saying = "";
+      } else {
+	llListenControl(avatar_handle, TRUE);
+      }
+      break;
+    }
     case "STATUS": {
       llRegionSayTo(EyeOfEkron, brain,
 		    "STATUS|" + (string) status + "|" + (string) llGetPos());
@@ -543,6 +627,7 @@ state wait {
     if (chan != WRESTLE_DONE) return;
     while (llGetListLength(llGetObjectAnimationNames())) llSleep(0.1);
     if (animation != "") llStartObjectAnimation(animation);
+    waiting_time = 45 + llFrand(45);
     state wander;
   }
 }

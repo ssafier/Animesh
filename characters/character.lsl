@@ -40,7 +40,27 @@ default {
       ++i;
       llLinksetDataWrite("hello-" + (string) i, s);
     }
-    
+
+    chat = SMACK;
+    i = 0;
+    len = llGetListLength(chat);
+    llLinksetDataWrite("smack-length", (string) len);
+    while(i < len) {
+      string s = (string) chat[i];
+      ++i;
+      llLinksetDataWrite("smack-" + (string) i, s);
+    }
+
+    chat = WAITING;
+    i = 0;
+    len = llGetListLength(chat);
+    llLinksetDataWrite("wait-length", (string) len);
+    while(i < len) {
+      string s = (string) chat[i];
+      ++i;
+      llLinksetDataWrite("wait-" + (string) i, s);
+    }
+
     llMessageLinked(LINK_SET, 333,llGetStartString(),NULL_KEY);
     if (llGetInventoryType(".updater") == INVENTORY_SCRIPT) {
       llSetScriptState(".updater", FALSE);
