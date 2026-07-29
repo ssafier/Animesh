@@ -76,6 +76,8 @@
 #define returnLeaf 5
 #define MENU_FAIL 6
 #define CHAT 7
+#define CHATBOT 8
+
 // 8 is get strength
 #define doAnimations 10
 #define registerSequence 11

@@ -1,5 +1,6 @@
 #include "src/animesh/include/animesh.h"
 #include "src/animesh/include/controlstack.h"
+#include "src/server/include/mpg.h"
 
 #ifndef debug
 #define debug(x)
@@ -17,6 +18,74 @@ integer avatar_prim;
 key current_avatar;
 float probability_of_win;
 integer handle;
+
+// chatbot
+string avdesc;
+float last_chat;
+integer wins;
+integer losses;
+string msgdefault;
+
+string create_fight_description() {
+  string text = "You are engaged in a fight involving boxing, wrestling and martial arts.";
+  if (wins > 0 || losses > 0) {
+    text = text + "  For the individual actions in this fight, you have " + (string) wins + " wins and "+ (string) losses + " losses.";
+  }
+  return text;
+}
+
+create_avatar_description(key avi, string json) {
+  avdesc = "  Your opponent is "+ llGetDisplayName(avi) +".";
+  string rp =  llJsonGetValue(json, ["rp"]);
+  string sps = llJsonGetValue(json,["sps"]);
+  string sml = llJsonGetValue(json, ["sml"]);
+  integer strength = 1;
+  integer str = -1;
+  if (sml != JSON_INVALID && sml != JSON_NULL) {
+    str = (integer) sml;
+  }
+  if (sps != JSON_INVALID && sps != JSON_NULL) {
+    string result = llJsonGetValue(sps,["total"]);
+    if (result != JSON_NULL && result != JSON_INVALID) {
+      if ((integer) result > str) str = (integer) result;
+    }
+  }
+  if (str >= 50000) strength = 6; else
+    if (str >= 20000) strength = 5; else
+      if (str >= 10000) strength = 4; else
+	if (str >= 5000) strength = 3; else
+	  if (str >= 1000) strength = 2; else
+	    if (str >= 300) strength = 1;
+  str = (integer) llLinksetDataRead("strength");
+  integer me;
+  if (str >= 50000) me = 6; else
+    if (str >= 20000) me = 5; else
+      if (str >= 10000) me = 4; else
+	if (str >= 5000) me = 3; else
+	  if (str >= 1000) me = 2; else
+	    if (str >= 300) me = 1;
+
+  if (sps != JSON_INVALID && sps != JSON_NULL) {
+    string result = llJsonGetValue(sps,["proto"]);
+    if (result != JSON_NULL && result != JSON_INVALID) {
+      avdesc = avdesc + "  They have the powers of " + result;
+      result = llJsonGetValue(sps,["strength"]);
+      if (result != JSON_NULL && result != JSON_INVALID) {
+	avdesc = avdesc + " and a marvel power grid strength of " + result +
+	  " compared to your rating of " + (string) me;
+      }
+      avdesc = avdesc + ".";
+      return;
+    } else {
+      result = llJsonGetValue(sps,["strength"]);
+      if (result != JSON_NULL && result != JSON_INVALID) {
+	strength = (integer) result;
+      }
+    }
+  }
+  list text = StrengthText;
+  avdesc = avdesc + "  They are " + (string) text[strength] + " compared to you " + (string) text[me] + ".";
+}
 
 integer max(integer a,integer b) { if (a > b) return a; return b; }
 #define set_max(a, b) a = max(a, b)
@@ -103,6 +172,7 @@ default {
       integer index = llSubStringIndex(msg, "|");
       string avatar_json = llGetSubString(msg, index + 1, -1);
       integer strength = avatar_strength(avatar_json);
+      create_avatar_description(current_avatar, avatar_json);
       index = strength2index(strength) * 5;
 
       quotes = index + 4;
@@ -113,6 +183,23 @@ default {
       break;
     }
     case ACTION_OFF: {
+      string msg;
+      if (wins == 0) {
+	  llMessageLinked(LINK_THIS, CHATBOT,
+			  "*you are defeated*|" + avdesc +
+			  "|You loose the fight|I give.",
+			  current_avatar);
+      } else if (losses == 0) {
+	llMessageLinked(LINK_THIS, CHATBOT,
+			"*you are victorious*|" + avdesc +
+			"|You win the fight|I give.",
+			current_avatar);
+      } else {
+	llMessageLinked(LINK_THIS, CHATBOT,
+			"*fight ends*|" + avdesc +
+			"|The fight is over and you respond based on wins and losses|Good fight.",
+			current_avatar);
+      }
       llMessageLinked(LINK_THIS, resetAnimationState, "", current_avatar);
       llMessageLinked(LINK_THIS, menuOff, "", current_avatar);
       current_avatar = NULL_KEY;
@@ -122,6 +209,11 @@ default {
     }
     case avatarSeated: {
       llMessageLinked(LINK_THIS, getLeaf, (string) returnLeaf + "|Ready", current_avatar);
+      last_chat = llGetTime();
+      llMessageLinked(LINK_THIS, CHATBOT,
+		      "*approaching*|" + avdesc +
+		      "|You have been challenged to a fight|Game on.",
+		      current_avatar);
       break;
     }
     case returnLeaf: {
@@ -148,13 +240,27 @@ default {
 	integer flags = afCache | afStopAll;
 	if (llFrand(1.0) <= probability_of_win) {
 	  flags = flags | afSwap;
+	  wins++;
 	  string s = "win-" + (string) ((integer) llFrand(quotes) + 1);
-	  llMessageLinked(LINK_THIS, CHAT, chatString(llLinksetDataRead(s)),
-			  current_avatar);
+	  if ((llGetTime() - last_chat)  > 15) {
+	    last_chat = llGetTime();
+	    llMessageLinked(LINK_THIS, CHATBOT,
+			    "*You won " + animation + "*|"  +
+			    avdesc + "|" + create_fight_description() + "|" +
+			    chatString(llLinksetDataRead(s)),
+			    current_avatar);
+	  }
 	} else {
+	  losses++;
 	  string s = "defeat-" + (string) ((integer) llFrand(quotes) + 1);
-	  llMessageLinked(LINK_THIS, CHAT, chatString(llLinksetDataRead(s)),
-			  current_avatar);
+	  if ((llGetTime() - last_chat)  > 15) {
+	    last_chat = llGetTime();
+	    llMessageLinked(LINK_THIS, CHATBOT,
+			    "*You lost " + animation + "*|"  +
+			    avdesc + "|" + create_fight_description() + "|" +
+			    chatString(llLinksetDataRead(s)),
+			    current_avatar);
+	  }
 	}
 	llMessageLinked(LINK_THIS, doAnimations,
 			animation + "|" + (string)flags, current_avatar);
@@ -182,8 +288,11 @@ default {
 	break;
     }
     default: {
-      llSleep(1 + llFrand(1.5));
-      llSay(0, llLinksetDataRead("smack-"+(string)((integer) llFrand(25) + 1)));
+      if ((llGetTime() - last_chat)  < 10) return;
+      llMessageLinked(LINK_THIS, CHATBOT,
+		      msg + "|"  + avdesc + "|" + create_fight_description() + "|" +
+		      llLinksetDataRead("smack-"+(string)((integer) llFrand(25) + 1)),
+		      current_avatar);
       break;
     }
     }
