@@ -160,11 +160,11 @@ default {
     }
     currentAnimation = "Default";
     llStartObjectAnimation(currentAnimation);
-    llSetTimerEvent(60);
+    llSetTimerEvent(600);
   }
 
   timer() {
-    llSay(0, CHALLENGE);
+    llShout(0, CHALLENGE);
   }
 
   state_exit() { llSetTimerEvent(0); }

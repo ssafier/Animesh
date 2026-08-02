@@ -1,4 +1,6 @@
-#include "include/animesh.h"
+#include "src/animesh/include/animesh.h"
+#include "src/server/include/mpg.h"
+
 #ifdef DEBUGGING
 #define EyeOfEkron (key) "6456374b-8b39-f398-1233-e4ba1a4a7835"
 #else
@@ -6,7 +8,7 @@
 #endif
 
 #ifndef STEP
-#define STEP 1.6667
+#define STEP 2.0
 #endif
 
 #ifndef debug
@@ -45,6 +47,7 @@ vector home;
 integer moving;
 integer wander_state;
 integer wait_time;
+
 // Variables for stuck detection
 vector g_last_pos;
 integer g_stuck_count = 0;
@@ -57,6 +60,69 @@ string await_str;
 string saying;
 
 float waiting_time;
+integer wait_start;
+
+integer use_chatbot;
+string avdesc;
+integer gymp;
+
+create_avatar_description(key avi, string json) {
+  avdesc = "  Your opponent is "+ llGetDisplayName(avi) +".";
+  string rp =  llJsonGetValue(json, ["rp"]);
+  string sps = llJsonGetValue(json,["sps"]);
+  string sml = llJsonGetValue(json, ["sml"]);
+  integer strength = 1;
+  integer str = -1;
+  if (sml != JSON_INVALID && sml != JSON_NULL) {
+    str = (integer) sml;
+  }
+  if (sps != JSON_INVALID && sps != JSON_NULL) {
+    string result = llJsonGetValue(sps,["total"]);
+    if (result != JSON_NULL && result != JSON_INVALID) {
+      if ((integer) result > str) str = (integer) result;
+    }
+  }
+  if (str >= 50000) strength = 6; else
+    if (str >= 20000) strength = 5; else
+      if (str >= 10000) strength = 4; else
+	if (str >= 5000) strength = 3; else
+	  if (str >= 1000) strength = 2; else
+	    if (str >= 300) strength = 1;
+  str = (integer) llLinksetDataRead("strength");
+  integer me;
+  if (str >= 50000) me = 6; else
+    if (str >= 20000) me = 5; else
+      if (str >= 10000) me = 4; else
+	if (str >= 5000) me = 3; else
+	  if (str >= 1000) me = 2; else
+	    if (str >= 300) me = 1;
+
+  list text = StrengthText;
+  if (rp != JSON_INVALID && rp != JSON_NULL) {
+    string result = llJsonGetValue(rp,["proto"]);
+    if (result != JSON_NULL && result != JSON_INVALID) {
+      avdesc = avdesc + "  They have the powers of " + result;
+      result = llJsonGetValue(rp,["strength"]);
+      if (result != JSON_NULL && result != JSON_INVALID) {
+	avdesc = avdesc + " and a  strength of " + (string) text[((integer) result) - 1] +
+	  " compared to your strength of " + (string) text[me];
+      }
+      avdesc = avdesc + ".";
+      result = llJsonGetValue(rp, ["alignment"]);
+      if (result != JSON_NULL && result != JSON_INVALID) {
+	list align = AlignmentText;
+	avdesc = avdesc + " Their alignment is " + (string) align[(integer) result - 1];
+      }
+      return;
+    } else {
+      result = llJsonGetValue(rp,["strength"]);
+      if (result != JSON_NULL && result != JSON_INVALID) {
+	strength = (integer) result;
+      }
+    }
+  }
+  avdesc = avdesc + "  They are " + (string) text[strength] + " compared to you " + (string) text[me] + ".";
+}
 
 clear_animation() {
   if (llLinksetDataRead("walk-loop") == "0" && animation == llLinksetDataRead("walk")) {
@@ -247,6 +313,9 @@ default {
     }
 
     avatar_json = (string) params[1];
+    if (use_chatbot = llSameGroup(avatar)) {
+      create_avatar_description(avatar, avatar_json);
+    }
     parse_json();
     wander_state = 0;
 
@@ -263,7 +332,7 @@ default {
       --len;
       filters = [(key)(string)f[len]] + filters;
     }
-
+    gymp = (integer) (string) params[5];
     channel = (integer) ("0x"+llGetSubString((string) llGetKey(), -6, -1));
     handle = llListen(channel, "", "", "");
     avatar_handle = llListen(0, "",NULL_KEY , "");
@@ -278,6 +347,7 @@ default {
     llSetTimerEvent(0);
     clear_animation();
     llStartObjectAnimation(animation = llLinksetDataRead("stand"));
+    wait_start = llGetUnixTime();
     waiting_time = 45 + llFrand(45);
     state wander;
   }
@@ -291,6 +361,17 @@ default {
 	llListenControl(avatar_handle, FALSE);
 	await_from = NULL_KEY;
 	await_str = saying = "";
+      }
+      if (use_chatbot && xyzzy == avatar) {
+	string desc;
+	if (gymp) {
+	  desc = "You are in a gym.";
+	} else {
+	  desc = "You have teleported here to see "+llGetDisplayName(avatar);
+	}
+	llMessageLinked(LINK_THIS, CHATBOT,
+			msg + "|" + avdesc + "|" + desc +  "|I'm ignoring you.",
+			avatar);
       }
       return;
     }
@@ -329,18 +410,29 @@ default {
     llListenRemove(avatar_handle);
     llSetTimerEvent(0);
   }
-    
 }
 
 state wander {
   state_entry() {
-    llMessageLinked(LINK_THIS, CHAT, chatString(calculateGreeting()), avatar);
+    if (use_chatbot) {
+      string desc;
+      if (gymp) {
+	desc = "You have arrived at the gym to train with "+ llGetDisplayName(avatar) + ".";
+      } else {
+	desc = "You have been summoed by "+ llGetDisplayName(avatar) + " and arrive by teleport.";
+      }
+      llMessageLinked(LINK_THIS, CHATBOT,
+		      "*Greeting*|" + avdesc + "|" + desc +  "|" + chatString(calculateGreeting()),
+		      avatar);
+    } else {
+      llMessageLinked(LINK_THIS, CHAT, chatString(calculateGreeting()), avatar);
+    }
     handle = llListen(channel, "", "", "");
     avatar_handle = llListen(0, "", NULL_KEY, "");
     is_following = FALSE;
     wander_state = 0;
     moving = FALSE;
-    llListenControl(avatar_handle, FALSE);
+    llListenControl(avatar_handle, await_from != NULL_KEY || use_chatbot);
     llSetTimerEvent(0.5);         
     llSensorRepeat("", avatar, AGENT, 96.0, PI, 1.0);
     // Initialize the first wander target
@@ -374,7 +466,7 @@ state wander {
       // Avatar is logged in, but outside the region bounds
       if (is_following) {
 	is_following = FALSE;
-	llListenControl(avatar_handle, FALSE);
+	llListenControl(avatar_handle, await_from != NULL_KEY || use_chatbot);
 	pick_new_target();
       }
     }
@@ -396,8 +488,25 @@ state wander {
 
     waiting_time = waiting_time - 0.5;
     if (waiting_time < 0) {
-      llShout(0, chatString(llLinksetDataRead("wait-"+(string)((integer) llFrand(15) + 1))));
-      waiting_time = 45 + llFrand(45);
+    if (use_chatbot) {
+      string desc;
+      if (gymp) {
+	desc = "You at the gym and are waiting for " + llGetDisplayName(avatar) + " for " +
+	  (string) (llGetUnixTime() - wait_start) + " seconds.";
+      } else {
+	desc = "You at are waiting for " + llGetDisplayName(avatar)  + " for " +
+	  (string) (llGetUnixTime() - wait_start) + " seconds.";
+      }
+      llMessageLinked(LINK_THIS, CHATBOT,
+		      "*Waiting*|" + avdesc +
+		      "|" + desc + "|" + chatString(calculateGreeting()),
+		      avatar);
+    } else {
+      llMessageLinked(LINK_THIS, CHAT,
+		      chatString(llLinksetDataRead("wait-"+(string)((integer) llFrand(15) + 1))),
+		      avatar);
+    }
+    waiting_time = 45 + llFrand(45);
     }
       
     if (is_following) { // target set in sensor
@@ -538,7 +647,21 @@ state wander {
 	}
       }
 #endif
-      default:break;
+      default: {
+	if (use_chatbot && xyzzy == avatar) {
+	  string desc;
+	  if (gymp) {
+	    desc = "You are in a gym.";
+	  } else {
+	    desc = "You have teleported here to see "+llGetDisplayName(avatar);
+	  }
+	  waiting_time = 45 + llFrand(45);
+	  llMessageLinked(LINK_THIS, CHATBOT,
+			  msg + "|" + avdesc + "|" + desc +  "|I'm ignoring you.",
+			  avatar);
+	}
+	break;
+      }
       }
       return;
     }
@@ -627,6 +750,7 @@ state wait {
     if (chan != WRESTLE_DONE) return;
     while (llGetListLength(llGetObjectAnimationNames())) llSleep(0.1);
     if (animation != "") llStartObjectAnimation(animation);
+    wait_start = llGetUnixTime();
     waiting_time = 45 + llFrand(45);
     state wander;
   }

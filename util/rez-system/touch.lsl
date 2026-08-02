@@ -47,7 +47,7 @@ default {
     llMessageLinked(LINK_THIS,
 		    PROCESS,
 		    animesh + "|" + (string) avatar + "|" +  json + "|"
-		    + (string) v1 + "|" + (string) v2 + "|" + (string) llGetKey(), 
+		    + (string) v1 + "|" + (string) v2 + "|" + (string) llGetKey() + "|0", 
 		    xyzzy);
   }
 }

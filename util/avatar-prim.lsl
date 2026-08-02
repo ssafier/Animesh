@@ -139,6 +139,8 @@ default {
       rotation rot = (rotation) llGetSubString(msg, index + 1, -1);
       llSetLinkPrimitiveParamsFast(LINK_THIS,
 				   [PRIM_POS_LOCAL, pos, PRIM_ROT_LOCAL, rot]);
+      llSetLinkPrimitiveParamsFast(link_num,
+				   [PRIM_POS_LOCAL, pos, PRIM_ROT_LOCAL, rot]);
       break;
     }
     default: break;

@@ -39,15 +39,15 @@ Menu(string text, key agent) {
   list Buttons;
   integer All = llGetListLength(menu_items);
   if(menuIter >= 9) {  //This is NOT the first menu page
-    Buttons += Backward;
       if((All - menuIter) > 11)  {// This is not the last page
-	Buttons += Forward;
+	Buttons = [Forward] + llList2List(menu_items,menuIter+1,menuIter+1) + [Backward];
       } else {    // This IS the last page
+	Buttons = llList2List(menu_items,menuIter+1,menuIter+2) + [Backward];
 	Last = TRUE;
       }            
   } else if (All > menuIter+9) { // This IS the first page
     if((All - menuIter) > 11)  { // There are more pages to follow
-      Buttons += Forward;
+      Buttons = [Forward] + Buttons;
     } else {    // This IS the last page
       Last = TRUE;
     }            

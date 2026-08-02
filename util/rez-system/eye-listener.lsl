@@ -18,7 +18,7 @@ default {
     handle = llListen(brain, "", EyeOfEkron, "");
   }
   listen(integer chan, string name, key xyzzy, string msg) {
-    llMessageLinked(LINK_THIS, PROCESS, msg + "|" + (string) (EyeOfEkron), xyzzy);
+    llMessageLinked(LINK_THIS, PROCESS, msg + "|" + (string) (EyeOfEkron) + "|1", xyzzy);
   }
   object_rez(key id) {
     llRegionSayTo(EyeOfEkron, brain, (string) id);

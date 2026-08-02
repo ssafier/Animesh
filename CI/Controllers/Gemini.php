@@ -54,7 +54,9 @@ class Gemini extends BaseController
         $message     = $this->request->getPost('message');
 
         // 2. Fetch History & Check for Expiration (30 minute timeout)
-        $result = $this->chats->where('avatar =', $avatar->id)->where('animesh =', $npc->id)->findAll();
+        $conditions = array('avatar' => $avatar->id,
+                            'animesh' => $npc->id);
+        $result = $this->chats->where($conditions)->findAll();
         $previousInteractionId = null;
         $session = null;
         
@@ -79,7 +81,7 @@ class Gemini extends BaseController
         // godaddy is stripping the header below, so pass key this way
         $url    = "https://generativelanguage.googleapis.com/v1beta/interactions?key=" . trim($apiKey);
         $systemInstruction = 
-            'Keep your responses concise and punchy.   If the user text is wrapped in astericks (e.g. *punch*), this is a physical action taken against you.  React to the physical action in character.  DO NOT INCLUDE ASTERISKS IN YOUR RESPONSE.\n'.
+            'Keep your responses concise and punchy.   If the user text is wrapped in astericks (e.g. *punch*), this is a physical action taken against you.  React to the physical action in character.\n' .
             $npc->description . '\n ' . $json['avatar-desc'] . '\n' . $json['text'] ;
 
         // Build the Interactions payload

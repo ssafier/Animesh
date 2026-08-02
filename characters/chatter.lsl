@@ -50,7 +50,7 @@ respond2Command(key from, string msg) {
       saying = (string) params[3];
       //llOwnerSay(msg);
       if (await_from == NULL_KEY) {
-	llSleep(3.5);
+	llSleep(5);
 	Chat(saying);
 	saying = "";
       }

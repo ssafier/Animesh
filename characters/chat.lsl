@@ -27,7 +27,7 @@ default {
     case CHATBOT: {
       list params = llParseString2List(msg, ["|"], []);
       string json = "{\"avatar\":\"" + (string) xyzzy +
-	"\", \"npc\":\"Prime\", \"message\": \"" + (string) params[0] +
+	"\", \"npc\":\"" + llGetObjectName() + "\", \"message\": \"" + (string) params[0] +
 	"\", \"avatar-desc\":\"" + (string) params[1] +
 	"\", \"text\":\"" + (string) params[2] + ".\"}";
       msgdefault = (string) params[3];

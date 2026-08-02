@@ -65,26 +65,31 @@ create_avatar_description(key avi, string json) {
 	  if (str >= 1000) me = 2; else
 	    if (str >= 300) me = 1;
 
-  if (sps != JSON_INVALID && sps != JSON_NULL) {
-    string result = llJsonGetValue(sps,["proto"]);
+  list text = StrengthText;
+  if (rp != JSON_INVALID && rp != JSON_NULL) {
+    string result = llJsonGetValue(rp,["proto"]);
     if (result != JSON_NULL && result != JSON_INVALID) {
       avdesc = avdesc + "  They have the powers of " + result;
-      result = llJsonGetValue(sps,["strength"]);
+      result = llJsonGetValue(rp,["strength"]);
       if (result != JSON_NULL && result != JSON_INVALID) {
-	avdesc = avdesc + " and a marvel power grid strength of " + result +
-	  " compared to your rating of " + (string) me;
+	avdesc = avdesc + " and a  strength of " + (string) text[((integer) result) - 1] +
+	  " compared to your strength of " + (string) text[me];
       }
       avdesc = avdesc + ".";
+      result = llJsonGetValue(rp, ["alignment"]);
+      if (result != JSON_NULL && result != JSON_INVALID) {
+	list align = AlignmentText;
+	avdesc = avdesc + " Their alignment is " + (string) align[((integer) result) - 1];
+      }
       return;
     } else {
-      result = llJsonGetValue(sps,["strength"]);
+      result = llJsonGetValue(rp,["strength"]);
       if (result != JSON_NULL && result != JSON_INVALID) {
 	strength = (integer) result;
       }
     }
   }
-  list text = StrengthText;
-  avdesc = avdesc + "  They are " + (string) text[strength] + " compared to you " + (string) text[me] + ".";
+  avdesc = avdesc + "  They are " + (string) text[strength - 1] + " compared to you " + (string) text[me] + ".";
 }
 
 integer max(integer a,integer b) { if (a > b) return a; return b; }
@@ -137,6 +142,83 @@ string chatString(string s) {
 }
 
 default {
+  on_rez(integer x) {
+    if (x == 0) return;
+    llLinksetDataWrite("Flip-win", "You foil %s's attack and flip them to the ground.");
+    llLinksetDataWrite("Flip-loss", "%s foils your attack and flips you tot he ground.");
+    llLinksetDataWrite("Headlock-win", "You flip %s to the ground and wrap your ");
+    llLinksetDataWrite("Headlock-loss", "You are flipped to the ground, %s's legs wrapped around your head.");
+    llLinksetDataWrite("Judo Throw-win", "You block %s's attack and throw them to the ground with a judo throw.");
+    llLinksetDataWrite("Judo Throw-loss", "%s blocks your attack and uses judo throws you to the ground.");
+    llLinksetDataWrite("Kicks-win", "You spin to the ground and kick %s's legs out from under them.");
+    llLinksetDataWrite("Kicks-loss", "%s spins to the ground and kicks your legs out");
+    llLinksetDataWrite("Piledriver-win", "You grab %s, flip him upside down, corkscrew-jump 10 feet in the air,  and smash them into the ground.");
+    llLinksetDataWrite("Piledriver-loss", "% s grabs you, flips you upside down, corkscrew-jumps 10 feet in the air, and smashes you into the grou.");
+    llLinksetDataWrite("Punch-win", "You knock %s down with a single punch.");
+    llLinksetDataWrite("Punch-loss", "%s knows you down with a single punch.");
+    llLinksetDataWrite("Roundhouse-win", "You attack %s with  a series of roundhouse punches.");
+    llLinksetDataWrite("Roundhouse-loss", "%s attacks you with a series of roundhouse punches.");
+    llLinksetDataWrite("ShoulderThrow-win", "You toss %s over your shoulder and throw them to the ground.");
+    llLinksetDataWrite("ShoulderThrow-loss", "%s tosses you over their shoulder and throws you to the ground.");
+    llLinksetDataWrite("Slam-win", "You lift %s and slam them to the ground.");
+    llLinksetDataWrite("Slam-loss", "%s lifts you up and slams you to the ground.");
+    llLinksetDataWrite("Somersault-win", "You block %s with a in-air somersault.");
+    llLinksetDataWrite("Somersault-loss", "%s blocks your attack with a in-air somersault.");
+    llLinksetDataWrite("Suplex-win", "You get %s in a suplex.");
+    llLinksetDataWrite("Suplex-loss", "%s gets you in a suplex.");
+    llLinksetDataWrite("Uppercut-win", "You hit %s with an uppercut, lifting them in the air before they crash to the ground.");
+    llLinksetDataWrite("Uppercut-loss", "%s hits you with an uppercut, lifting you in the air before you crash to the ground.");
+    llLinksetDataWrite("Turn Kick-win", "You kick %s's legs out and they fall to the ground.");
+    llLinksetDataWrite("Turn Kick-loss", "%s kick your legs out from under you.");
+    llLinksetDataWrite("Push Kick-win", "You jump-kick %s, pushing them back.");
+    llLinksetDataWrite("Push Kick-loss", "%s jump-kicks you, pushing you back.");
+    llLinksetDataWrite("Kickout-win", "%s attacks and you kick them away.");
+    llLinksetDataWrite("Kickout-loss", "You attack %s and they kick you away.");
+    llLinksetDataWrite("Jump Kick-win", "You attack %s with a series of explosive kicks.");
+    llLinksetDataWrite("Jump Kick-loss", "%s attacks you with a series of explosive kicks.");
+    llLinksetDataWrite("Head Kick-win", "You turn and reverse-kick %s in the head.");
+    llLinksetDataWrite("Head Kick-loss", "%s turns and reverse-kicks you in the head.");
+    llLinksetDataWrite("Punch Flip-win", "You hit %s with multiple punchs and backflip avoiding their counter-attack.");
+    llLinksetDataWrite("Punch Flip-loss", "%s hits you with multiple punches and avoids your counter-attack with a back flip.");
+    llLinksetDataWrite("Ready-win", "You approach %s confident in your victory.");
+    llLinksetDataWrite("Ready-loss", "%s approachs you as you realize their size and power.");
+    llLinksetDataWrite("Arm Block-win", "You successfully block %s's attack with your arm.");
+    llLinksetDataWrite("Arm Block-loss", "%s blocks your attack with their arms.");
+    llLinksetDataWrite("Punch Elbow-win", "You thrust your elbow into %s neck and chin.");
+    llLinksetDataWrite("Punch Elbow-loss", "%s thrusts their elbow into your neck and chin.");
+    llLinksetDataWrite("One Two-win", "You attack %s wth a surpise one-two punch.");
+    llLinksetDataWrite("One Two-loss", "%s surprises you with a one-two punch.");
+    llLinksetDataWrite("Standoff-win", "You approach %s confident in your victory.");
+    llLinksetDataWrite("Standoff-loss", "%s approachs you as you realize their size and power.");
+    llLinksetDataWrite("Contempt-win", "You punch %s with contempt.");
+    llLinksetDataWrite("Contempt-loss", "%s punches you hard, showing their contempt for you.");
+    llLinksetDataWrite("Block Hit-win", "You block %s's attack.");
+    llLinksetDataWrite("Block Hit-loss", "%s blocks your attack.");
+    llLinksetDataWrite("Snap Kick-win", "Using the strength in your legs, you attack %s with a series of forward and reverse kicks.");
+    llLinksetDataWrite("Snap Kick-loss", "Using the strength in their legs, %s attacks you with a series of forward and reverse kicks.");
+    llLinksetDataWrite("Side Kick-win", "You kicks your powerful leg into %s side.");
+    llLinksetDataWrite("Side Kick-loss", "%s kicks their powerful leg into your side.");
+    llLinksetDataWrite("Double Kick-win", "You and %s engage in a kick fight.");
+    llLinksetDataWrite("Double Kick-loss", "%s and you engage in a kick fight.");
+    llLinksetDataWrite("Throw Kick-win", "You spin around and kick %s's legs out.");
+    llLinksetDataWrite("Throw Kick-loss", "%s spins around and kicks your legs out.");
+    llLinksetDataWrite("Lift-win", "You lift %s off the ground with a single hand, holding them by the neck.");
+    llLinksetDataWrite("Lift-loss", "%s lifts you by the neck off the ground with a single hand ");
+    llLinksetDataWrite("Head Grab-win", "You force %s head into your bicep, trapping it there by flexing.");
+    llLinksetDataWrite("Head Grab-loss", "%s forces your head into their bicep trapping it there.");
+    llLinksetDataWrite("Back Scissor-win", "You flip %s horizontally on your back, wrap your arms, and trap them in a back-scissor hold.");
+    llLinksetDataWrite("Back Scissor-loss", "%s flips you horizontally onto their back, and traps you in a scissor hold with their powerful arms.");
+    llLinksetDataWrite("Pecs Scissor-win", "You push %s to the ground and force his face between your pecs as you flex, trapping them there.");
+    llLinksetDataWrite("Pecs Scissor-loss", "You are pushed to the ground, your face trapped between %s's pecs.");
+    llLinksetDataWrite("Defeated-win", "%s sits defeated on the ground as you stand victorious over him.");
+    llLinksetDataWrite("Defeated-loss", "%s stands victorious over you as you sit defeated.");
+    llLinksetDataWrite("ArmW1-win", "%s grabs your immoveable hand.  They apply more and more force, eventually using two hands.  Finally you get bored and quickly push their arm down with such force you toss them into the air then the ground.");
+    llLinksetDataWrite("ArmW1-loss", "You grab %s's immoveable hand.  You apply more and more force, eventually using two hands.  Finally they get bored and easilty flip your arms down, tossing you like a ragdoll into the ground..");
+    llLinksetDataWrite("ArmW3-win", "%s grabs your immoveable hand.  They apply more and more force, eventually using two hands.  Finally you get bored and quickly push their arm down with such force you toss them into the air then the ground.");
+    llLinksetDataWrite("ArmW3-loss", "You grab %s's immoveable hand.  You apply more and more force, eventually using two hands.  Finally they get bored and easilty flip your arms down, tossing you like a ragdoll into the ground..");
+    llLinksetDataWrite("ArmW2-win", "%s grabs your immoveable hand.  They apply more and more force, eventually using two hands.  Finally you get bored and quickly push their arm down with such force you toss them into the air then the ground.");
+    llLinksetDataWrite("ArmW2-loss", "You grab %s's immoveable hand.  You apply more and more force, eventually using two hands.  Finally they get bored and easilty flip your arms down, tossing you like a ragdoll into the ground..");    
+  }
   state_entry() {
     integer objectPrimCount = llGetObjectPrimCount(llGetKey());
     integer currentLinkNumber = 0;
@@ -151,7 +233,7 @@ default {
 				     [PRIM_SIZE, <0.5,0.5,0.1>,PRIM_POS_LOCAL, <0.5,0,-0.5>]
 				     );
 	llSetLinkAlpha(currentLinkNumber,1,ALL_SIDES);
-	*/
+*/
 	avatar_prim = currentLinkNumber;
 	break;
       }
@@ -200,6 +282,7 @@ default {
 			"|The fight is over and you respond based on wins and losses|Good fight.",
 			current_avatar);
       }
+      llMessageLinked(LINK_THIS, stopSequence, "", NULL_KEY);
       llMessageLinked(LINK_THIS, resetAnimationState, "", current_avatar);
       llMessageLinked(LINK_THIS, menuOff, "", current_avatar);
       current_avatar = NULL_KEY;
@@ -208,6 +291,21 @@ default {
       break;
     }
     case avatarSeated: {
+      integer objectPrimCount = llGetObjectPrimCount(llGetKey());
+      integer currentLinkNumber = 0;
+      avatar_prim = -1;
+      while(currentLinkNumber <= objectPrimCount && avatar_prim == -1) {
+	list params = llGetLinkPrimitiveParams(currentLinkNumber, [PRIM_NAME]);
+	switch((string) params[0]) {
+	case "avi prim": {
+	  avatar_prim = currentLinkNumber;
+	  break;
+	}
+	default: break;
+	}
+	currentLinkNumber++;
+      }
+      llSetLinkAlpha(avatar_prim,1,ALL_SIDES);
       llMessageLinked(LINK_THIS, getLeaf, (string) returnLeaf + "|Ready", current_avatar);
       last_chat = llGetTime();
       llMessageLinked(LINK_THIS, CHATBOT,
@@ -236,27 +334,29 @@ default {
 	p2 = (vector) temp;
 	POP(temp);
 	r2 = (rotation) temp;
-	llMessageLinked(avatar_prim, 2,(string)p2 + "|" + (string)r2, current_avatar);
+	llMessageLinked(avatar_prim, 2,(string)p2 + "|" + (string)(r2 * r1), current_avatar);
 	integer flags = afCache | afStopAll;
 	if (llFrand(1.0) <= probability_of_win) {
 	  flags = flags | afSwap;
 	  wins++;
 	  string s = "win-" + (string) ((integer) llFrand(quotes) + 1);
 	  if ((llGetTime() - last_chat)  > 15) {
+	    string d = llLinksetDataRead(animation+"-win");
 	    last_chat = llGetTime();
 	    llMessageLinked(LINK_THIS, CHATBOT,
-			    "*You won " + animation + "*|"  +
+			    "*" + chatString(d) + "*|"  +
 			    avdesc + "|" + create_fight_description() + "|" +
 			    chatString(llLinksetDataRead(s)),
 			    current_avatar);
 	  }
 	} else {
+	  string d = llLinksetDataRead(animation+"-loss");
 	  losses++;
 	  string s = "defeat-" + (string) ((integer) llFrand(quotes) + 1);
 	  if ((llGetTime() - last_chat)  > 15) {
 	    last_chat = llGetTime();
 	    llMessageLinked(LINK_THIS, CHATBOT,
-			    "*You lost " + animation + "*|"  +
+			    "*" + chatString(d) + "*|"  +
 			    avdesc + "|" + create_fight_description() + "|" +
 			    chatString(llLinksetDataRead(s)),
 			    current_avatar);
@@ -279,6 +379,7 @@ default {
       break;
     }
     case "stop": {
+      llMessageLinked(LINK_THIS, stopSequence, "", NULL_KEY);
       llUnSit(current_avatar);
       break;
     }

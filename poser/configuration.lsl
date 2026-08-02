@@ -43,7 +43,7 @@ parse_leaf(list leaf) {
 	  + (string) temp[1]);
     r2 = llEuler2Rot((vector)((string) temp[1] + ">")*DEG_TO_RAD);
   }
-  debug("leaf "+ (string) leaf[1] + " " +(string) temp[1]+ (string)r2);
+  debug("leaf "+ (string) leaf[1] + " " +(string) v2+ (string)r2);
   leaves = leaves +  [(string)leaf[1], v1, r1, v2, r2];
   ++leaf_count;
 }
