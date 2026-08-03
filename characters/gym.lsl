@@ -162,6 +162,16 @@ pick_new_target() {
     current_target_pos = llGetPos();
     current_target_pos.x = rx;
     current_target_pos.y = ry;
+    vector t = current_target_pos;
+    vector t1 = t;
+    t.z += 1;
+    t1.z -= 2;
+    list r = llCastRay(t, t, [RC_REJECT_TYPES, RC_REJECT_AGENTS]);
+    if (llGetListLength(r) > 1) {
+      vector v = (vector) r[1];
+      if (v != ZERO_VECTOR)
+	current_target_pos.z = v.z + 0.5;
+    }
     g_tau = llVecDist(llGetPos(), current_target_pos) / STEP;
     move_to_target();
 }
@@ -170,7 +180,8 @@ integer obstacle() {
   integer hits = 0;
   vector p = llGetPos();
   vector p1 = p;
-  vector t = p + <10,0,0>*llGetRot();
+  p1.z += 1;
+  vector t = p + <10,0,-2>*llGetRot();
   vector t1 = t;
   list r = llCastRay(p, t, [RC_REJECT_TYPES, RC_REJECT_AGENTS]);
   if (llGetListLength(r) > 1) hits = 1;
