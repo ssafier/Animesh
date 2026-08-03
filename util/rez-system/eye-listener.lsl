@@ -18,7 +18,8 @@ default {
     handle = llListen(brain, "", EyeOfEkron, "");
   }
   listen(integer chan, string name, key xyzzy, string msg) {
-    llMessageLinked(LINK_THIS, PROCESS, msg + "|" + (string) (EyeOfEkron) + "|1", xyzzy);
+    llMessageLinked(LINK_THIS, PROCESS, msg + "|" + (string) (EyeOfEkron) +
+		    "|You have arrived at Evolve Gym where the strongest train.  Superman, Black Adam are here and the Abomination is in the wrestling ring.  %s arrives with you.", xyzzy);
   }
   object_rez(key id) {
     llRegionSayTo(EyeOfEkron, brain, (string) id);

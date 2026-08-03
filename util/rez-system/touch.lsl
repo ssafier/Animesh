@@ -11,11 +11,13 @@ integer channel;
 key avatar;
 key httpKey;
 string json;
+string reason;
 
 default {
   state_entry() {
     channel = (integer)("0x"+llGetSubString((string)llGetKey(), -4, -1));
     handle = llListen(channel, "", NULL_KEY, "");
+    reason = "You have been summoned by %s.";
     llListenControl(handle, FALSE);
   }
   touch_start(integer x) {
@@ -31,15 +33,30 @@ default {
       json = body;
       list l = NPCs;
       string npcs = llDumpList2String(llListSort(llList2ListSlice(l, 0, -1, 2, 0), 1, FALSE), "+");
-      llMessageLinked(LINK_THIS, doMenu, "501|Rez a wrestler|"+npcs, avatar);
+      llMessageLinked(LINK_THIS, doMenu, "501|Rez a wrestler|Set Scene+"+npcs,
+		      avatar);
     }
   }
+  listen(integer chan, string name, key xyzzy, string msg) {
+    reason = msg;
+    if ((reason = msg) == ""){ 
+      reason = "You have been summoned by %s.";
+      llInstantMessage(avatar, "Setting the scene failed.  Default set.");
+    }
+    llListenControl(handle, FALSE);
+  }
+  
   link_message(integer from, integer chan, string msg, key xyzzy) {
     if (chan != 501) return;
     GET_CONTROL;
     string animesh;
     POP(animesh);
     if (animesh == "[time out]") return;
+    if (animesh == "Set Scene") {
+      llListenControl(handle, TRUE);
+      llTextBox(avatar,"What is happening when the character is?", channel);
+      return;
+    }
     vector v = llGetPos();
     rotation r = llGetRot();
     vector v1 = v + (DIST * r);
@@ -47,7 +64,8 @@ default {
     llMessageLinked(LINK_THIS,
 		    PROCESS,
 		    animesh + "|" + (string) avatar + "|" +  json + "|"
-		    + (string) v1 + "|" + (string) v2 + "|" + (string) llGetKey() + "|0", 
+		    + (string) v1 + "|" + (string) v2 + "|" + (string) llGetKey() + "|" +
+		    reason, 
 		    xyzzy);
   }
 }

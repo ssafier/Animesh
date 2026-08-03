@@ -1,5 +1,5 @@
-#define ANIMESH_STRENGTH 100000
-#define STAND "Explosive animation - Stretch"
+#define ANIMESH_STRENGTH 101000
+#define STAND "Jeff Hampton Posing Double Biceps MR OLYMPIA"
 #define LAND "Explosive animation - Male Crouch Pose 2"
 #define WALK "Explosive animation - Walk 11 Power Walk"
 

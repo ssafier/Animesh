@@ -50,20 +50,22 @@ create_avatar_description(key avi, string json) {
       if ((integer) result > str) str = (integer) result;
     }
   }
-  if (str >= 50000) strength = 6; else
-    if (str >= 20000) strength = 5; else
-      if (str >= 10000) strength = 4; else
-	if (str >= 5000) strength = 3; else
-	  if (str >= 1000) strength = 2; else
-	    if (str >= 300) strength = 1;
+  if (str >= 50000) strength = 7; else
+    if (str >= 20000) strength = 6; else
+      if (str >= 15000) strength = 5; else
+	if (str >= 10000) strength = 4; else
+	  if (str >= 5000) strength = 3; else
+	    if (str >= 1000) strength = 2; else
+	      if (str >= 300) strength = 1;
   str = (integer) llLinksetDataRead("strength");
   integer me;
-  if (str >= 50000) me = 6; else
-    if (str >= 20000) me = 5; else
-      if (str >= 10000) me = 4; else
-	if (str >= 5000) me = 3; else
-	  if (str >= 1000) me = 2; else
-	    if (str >= 300) me = 1;
+  if (str >= 50000) me = 7; else
+    if (str >= 20000) me = 6; else
+      if (str >= 15000) me = 5; else
+	if (str >= 10000) me = 4; else
+	  if (str >= 5000) me = 3; else
+	    if (str >= 1000) me = 2; else
+	      if (str >= 300) me = 1;
 
   list text = StrengthText;
   if (rp != JSON_INVALID && rp != JSON_NULL) {
@@ -119,12 +121,13 @@ integer avatar_strength(string json) {
 }
 
 integer strength2index(integer str) {
-  if (str >= 100000) return 6; else
-    if (str >= 20000) return 5; else
-      if (str >= 10000) return 4; else
-	if (str >= 5000) return 3; else
-	  if (str >= 1000) return 2; else
-	    if (str >= 300) return 1;
+  if (str >= 100000) return 7; else
+    if (str >= 20000) return 6; else
+      if (str >= 15000) return 5; else
+	if (str >= 10000) return 4; else
+	  if (str >= 5000) return 3; else
+	    if (str >= 1000) return 2; else
+	      if (str >= 300) return 1;
   return 0;
 }
 
