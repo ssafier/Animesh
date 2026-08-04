@@ -15,6 +15,9 @@
 #define debug(x)
 #endif
 
+// actions
+integer is_wrestling;
+
 integer brain = 0x922f52;
 integer channel;
 integer handle;
@@ -27,7 +30,6 @@ string animation;
 
 key avatar;
 string avatar_json;
-integer avatar_handle;
 
 integer sml;
 integer rp;
@@ -53,78 +55,7 @@ vector g_last_pos;
 integer g_stuck_count = 0;
 integer g_wedged_count = 0;
 
-#define Chat(msg) llSleep(1.5 + llFrand(1.5)); llShout(0, msg);
-
-key await_from;
-string await_str;
-string saying;
-
-float waiting_time;
-integer wait_start;
-
-integer use_chatbot;
-string avdesc;
 string reason;
-
-create_avatar_description(key avi, string json) {
-  avdesc = "  Your opponent is "+ llGetDisplayName(avi) +".";
-  string rp =  llJsonGetValue(json, ["rp"]);
-  string sps = llJsonGetValue(json,["sps"]);
-  string sml = llJsonGetValue(json, ["sml"]);
-  integer strength = 1;
-  integer str = -1;
-  if (sml != JSON_INVALID && sml != JSON_NULL) {
-    str = (integer) sml;
-  }
-  if (sps != JSON_INVALID && sps != JSON_NULL) {
-    string result = llJsonGetValue(sps,["total"]);
-    if (result != JSON_NULL && result != JSON_INVALID) {
-      if ((integer) result > str) str = (integer) result;
-    }
-  }
-  if (str >= 50000) strength = 7; else
-    if (str >= 20000) strength = 6; else
-      if (str >= 15000) strength = 5; else
-	if (str >= 10000) strength = 4; else
-	  if (str >= 5000) strength = 3; else
-	    if (str >= 1000) strength = 2; else
-	      if (str >= 300) strength = 1;
-  str = (integer) llLinksetDataRead("strength");
-  integer me;
-  if (str >= 50000) me = 7; else
-    if (str >= 20000) me = 6; else
-      if (str >= 15000) me = 5; else
-	if (str >= 10000) me = 4; else
-	  if (str >= 5000) me = 3; else
-	    if (str >= 1000) me = 2; else
-	      if (str >= 300) me = 1;
-
-  list text = StrengthText;
-  if (rp != JSON_INVALID && rp != JSON_NULL) {
-    string result = llJsonGetValue(rp,["proto"]);
-    if (result != JSON_NULL && result != JSON_INVALID) {
-      avdesc = avdesc + "  They have the powers of " + result;
-      result = llJsonGetValue(rp,["strength"]);
-      if (result != JSON_NULL && result != JSON_INVALID) {
-	avdesc = avdesc + " and a  strength of " + (string) text[((integer) result) - 1] +
-	  " compared to your strength of " + (string) text[me];
-      }
-      avdesc = avdesc + ".";
-      result = llJsonGetValue(rp, ["alignment"]);
-      if (result != JSON_NULL && result != JSON_INVALID) {
-	list align = AlignmentText;
-	avdesc = avdesc + " Their alignment is " + (string) align[(integer) result - 1];
-      }
-      return;
-    } else {
-      result = llJsonGetValue(rp,["strength"]);
-      if (result != JSON_NULL && result != JSON_INVALID) {
-	strength = (integer) result;
-      }
-    }
-  }
-  avdesc = avdesc + "  They are " + (string) text[strength] + " compared to you " + (string) text[me] + ".";
-}
 
 clear_animation() {
   if (llLinksetDataRead("walk-loop") == "0" && animation == llLinksetDataRead("walk")) {
@@ -261,19 +192,6 @@ parse_json() {
   }
 }
 
-string chatString(string s) {
-  integer idx = llSubStringIndex(s, "%s");
-  if (idx == -1) return s;
-  if (idx == 0) {
-    return llGetDisplayName(avatar) + llGetSubString(s, 2, -1);
-  } else if (idx == llStringLength(s)) {
-    return llGetSubString(s,0,-3) + llGetDisplayName(avatar);
-  }
-  return llGetSubString(s,0,idx-1) +
-    llGetDisplayName(avatar) +
-    llGetSubString(s, idx + 2, -1);
-}
-
 string calculateGreeting() {
   integer g = 0;
   if (sml > 0) {
@@ -312,6 +230,11 @@ string calculateGreeting() {
 }
 
 default {
+  on_rez(integer x) {
+    if (x == 0) return;
+    llLinksetDataWrite("action-keys","let's wrestle");
+  }
+  
   link_message(integer from, integer chan, string msg, key xyzzy) {
     if (chan != 333) return;
     home = llGetPos();
@@ -326,9 +249,7 @@ default {
     }
 
     avatar_json = (string) params[1];
-    if (use_chatbot = llSameGroup(avatar)) {
-      create_avatar_description(avatar, avatar_json);
-    }
+    llMessageLinked(LINK_THIS, RegisterChatter, avatar_json, avatar);
     parse_json();
     wander_state = 0;
 
@@ -349,8 +270,6 @@ default {
     reason = (string) params[5];
     channel = (integer) ("0x"+llGetSubString((string) llGetKey(), -6, -1));
     handle = llListen(channel, "", "", "");
-    avatar_handle = llListen(0, "",NULL_KEY , "");
-    llListenControl(avatar_handle, FALSE);
     status = 7; // GREETING
     animation = llLinksetDataRead("land");;
     llStartObjectAnimation(animation);
@@ -361,43 +280,15 @@ default {
     llSetTimerEvent(0);
     clear_animation();
     llStartObjectAnimation(animation = llLinksetDataRead("stand"));
-    wait_start = llGetUnixTime();
-    waiting_time = 90 + llFrand(45);
+    llMessageLinked(LINK_THIS, CHATBOT_GREET, reason + "|" + calculateGreeting(),
+		    avatar);
     state wander;
   }
 
   listen(integer chan, string name, key xyzzy, string msg) {
-    if (chan == 0) {
-      if (await_from != NULL_KEY &&
-	  await_from == xyzzy &&
-	  msg == await_str) {
-	Chat(saying);
-	llListenControl(avatar_handle, FALSE);
-	await_from = NULL_KEY;
-	await_str = saying = "";
-      }
-      if (use_chatbot && xyzzy == avatar) {
-	llMessageLinked(LINK_THIS, CHATBOT,
-			msg + "|" + avdesc + "|" +chatString(" %s is talking to you.") +  "|I'm ignoring you.",
-			avatar);
-      }
-      return;
-    }
     if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
     switch((string) params[0]) {
-    case "CHAT": {
-      await_from = (key)(string)params[1];
-      await_str = (string) params[2];
-      saying = (string) params[3];
-      if (await_from == NULL_KEY) {
-	Chat(saying);
-	saying = "";
-      } else {
-	llListenControl(avatar_handle, TRUE);
-      }
-      break;
-    }
     case "STATUS": {
       llRegionSayTo(EyeOfEkron, brain,
 		    "STATUS|" + (string) status + "|" + (string) llGetPos());
@@ -413,25 +304,21 @@ default {
    default: break;
     }      
   }
+
   state_exit() {
     llListenRemove(handle);
-    llListenRemove(avatar_handle);
     llSetTimerEvent(0);
   }
 }
 
 state wander {
   state_entry() {
-    llMessageLinked(LINK_THIS, CHATBOT,
-		    "*" + chatString(reason) + "*|" + avdesc + "|You are arriving.|" + 
-		    chatString(calculateGreeting()),
-		    avatar);
+    is_wrestling = FALSE;
+    
     handle = llListen(channel, "", "", "");
-    avatar_handle = llListen(0, "", NULL_KEY, "");
     is_following = FALSE;
     wander_state = 0;
     moving = FALSE;
-    llListenControl(avatar_handle, await_from != NULL_KEY || use_chatbot);
     llSetTimerEvent(0.5);         
     llSensorRepeat("", avatar, AGENT, 96.0, PI, 1.0);
     // Initialize the first wander target
@@ -440,11 +327,29 @@ state wander {
 
   state_exit() {
     llListenRemove(handle);
-    llListenRemove(avatar_handle);
     llSensorRemove();
     llSetTimerEvent(0);
   }
 
+  link_message(integer from, integer chan, string msg, key xyzzy) {
+    if (chan != CHAT_ACTION) return;
+    switch (llToLower(msg)) {
+    case "let's wrestle": {
+      if (is_wrestling) return;
+      if (animation != "") llStopObjectAnimation(animation);
+      if (llLinksetDataRead("walk-loop") == "0") {
+	llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
+      }
+      llStopMoveToTarget();
+      is_wrestling = TRUE;
+      // TODO register here too
+      llMessageLinked(LINK_THIS, WRESTLE, avatar_json, avatar);
+      state wait;
+    }
+    default: break;
+    }
+  }
+  
   sensor(integer num) {
     vector av_pos = llDetectedPos(0);
     rotation av_rot = llDetectedRot(0);
@@ -453,7 +358,6 @@ state wander {
     if (av_pos.x >= (REGION_MIN.x - 2) && av_pos.x <= (REGION_MAX.x + 2) &&
 	av_pos.y >= (REGION_MIN.y - 2) && av_pos.y <= (REGION_MAX.y + 2)) {
       //debug("in region");
-      if (!is_following) llListenControl(avatar_handle, TRUE);
       is_following = TRUE;
       vector my_pos = llGetPos();
       if (llVecDist(av_pos, current_target_pos) > 0.1) {
@@ -465,7 +369,6 @@ state wander {
       // Avatar is logged in, but outside the region bounds
       if (is_following) {
 	is_following = FALSE;
-	llListenControl(avatar_handle, await_from != NULL_KEY || use_chatbot);
 	pick_new_target();
       }
     }
@@ -477,7 +380,6 @@ state wander {
     llRegionSayTo(EyeOfEkron,brain, "DEPART");
     llSleep(0.1);
     llListenRemove(handle);
-    llListenRemove(avatar_handle);
     llDie();
   }
 
@@ -485,23 +387,6 @@ state wander {
     vector my_pos = llGetPos();
     float dist = llVecDist(my_pos, current_target_pos);
 
-    waiting_time = waiting_time - 0.5;
-    if (waiting_time < 0) {
-    if (use_chatbot) {
-      string desc = "You have been waiting for " +
-	  (string) (llGetUnixTime() - wait_start) + " seconds.";
-      llMessageLinked(LINK_THIS, CHATBOT,
-		      "*Waiting*|" + avdesc +
-		      "|" + desc + "|" + chatString(calculateGreeting()),
-		      avatar);
-    } else {
-      llMessageLinked(LINK_THIS, CHAT,
-		      chatString(llLinksetDataRead("wait-"+(string)((integer) llFrand(15) + 1))),
-		      avatar);
-    }
-    waiting_time = 90 + llFrand(45);
-    }
-      
     if (is_following) { // target set in sensor
       wander_state = 1;
       if (dist > 2.5) {
@@ -590,79 +475,11 @@ state wander {
   
   listen(integer chan, string name, key xyzzy, string msg) {
     if (chan == 0) {
-      if (await_from != NULL_KEY &&
-	  await_from == xyzzy &&
-	  msg == await_str) {
-	Chat(saying);
-	await_from = NULL_KEY;
-	await_str = saying = "";
-	return;
-      }
       if (xyzzy != avatar) return;
     }
     if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
-    if (chan == 0) {
-      switch (llToLower(msg)) {
-      case llToLower(llGetObjectName()): {
-	llMessageLinked(LINK_THIS, CHAT,"That's my name.  Don't abuse it!", avatar);
-	break;
-      }
-      case "ok "+llToLower(llGetObjectName())+" let's wrestle.":
-      case llToLower(llGetObjectName())+" let's wrestle.":
-      case "let's wrestle": {
-	if (animation != "") llStopObjectAnimation(animation);
-	if (llLinksetDataRead("walk-loop") == "0") {
-	  llMessageLinked(LINK_THIS, STOP_WALK, "", NULL_KEY);
-	}
-	llStopMoveToTarget();
-	llMessageLinked(LINK_THIS, WRESTLE, avatar_json, avatar);
-	state wait;
-      }
-#ifdef SPOTTER
-      case "spot me":
-      case "spot me.": {
-	// Determine the root object of the user
-	key root_id = llList2Key(llGetObjectDetails(avatar, [OBJECT_ROOT]), 0);
-    
-	// If the root is the user's own UUID, they are standing.
-	// If it's a different UUID, they are sitting on an object!
-	if (root_id != user_id && root_id != NULL_KEY) {
-        
-	  // Send a direct message to the machine they are sitting on
-	  // Format:  action | user_uuid | my_animesh_uuid | role_requested
-	  string msg = "offer_service|" + (string)user_id + "|" + (string)llGetKey() + "|trainer";
-	  
-	  llRegionSayTo(root_id, SYSTEM_CHANNEL, msg);
-	  
-	} else {
-	  llRegionSayTo(avatar, 0, "You need to be on the machine first, dummy.");
-	}
-      }
-#endif
-      default: {
-	if (use_chatbot && xyzzy == avatar) {
-	  waiting_time = 180 + llFrand(45);
-	  llMessageLinked(LINK_THIS, CHATBOT,
-			  msg + "|" + avdesc + "|" + chatString("%s is talking to you.") +  "|I'm ignoring you.",
-			  avatar);
-	}
-	break;
-      }
-      }
-      return;
-    }
     switch((string) params[0]) {
-    case "CHAT": {
-      await_from = (key)(string)params[1];
-      await_str = (string) params[2];
-      saying = (string) params[3];
-      if (await_from == NULL_KEY) {
-	Chat(saying);
-	saying = "";
-      }
-      break;
-    }
     case "STATUS": {
       llRegionSayTo(EyeOfEkron, brain,
 		    "STATUS|" + (string) status + "|" + (string) llGetPos());
@@ -683,8 +500,6 @@ state wander {
 state wait {
   state_entry() {
     handle = llListen(channel, "", NULL_KEY, "");
-    avatar_handle = llListen(0, "", NULL_KEY, "");
-    llListenControl(avatar_handle, await_from != NULL_KEY);
   }
 
   state_exit() {
@@ -692,32 +507,9 @@ state wait {
   }
 
   listen(integer chan, string name, key xyzzy, string msg) {
-    if (chan == 0) {
-      if (await_from != NULL_KEY &&
-	  await_from == xyzzy &&
-	  msg == await_str) {
-	Chat(saying);
-	llListenControl(avatar_handle, FALSE);
-	await_from = NULL_KEY;
-	await_str = saying = "";
-      }
-      return;
-    }
     if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
     switch((string) params[0]) {
-    case "CHAT": {
-      await_from = (key)(string)params[1];
-      await_str = (string) params[2];
-      saying = (string) params[3];
-      if (await_from == NULL_KEY) {
-	Chat(saying);
-	saying = "";
-      } else {
-	llListenControl(avatar_handle, TRUE);
-      }
-      break;
-    }
     case "STATUS": {
       llRegionSayTo(EyeOfEkron, brain,
 		    "STATUS|" + (string) status + "|" + (string) llGetPos());
@@ -737,8 +529,6 @@ state wait {
     if (chan != WRESTLE_DONE) return;
     while (llGetListLength(llGetObjectAnimationNames())) llSleep(0.1);
     if (animation != "") llStartObjectAnimation(animation);
-    wait_start = llGetUnixTime();
-    waiting_time = 180 + llFrand(45);
     state wander;
   }
 }

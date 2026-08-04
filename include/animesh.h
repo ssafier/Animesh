@@ -23,7 +23,6 @@
 #define ACT_WRESTLE 6
 #define ACT_GREET 7
 
-
 // Error Types
 #define ERR_COLLISION 1
 #define ERR_STUCK     2
@@ -88,6 +87,11 @@
 #define doMenu 22
 #define menuOff -22
 #define sitAvatar 23
+
+#define RegisterChatter 30
+#define CHAT_ACTION 31
+#define CHATBOT_GREET 32
+#define ACTOR_REGISTER 33
 
 #define ACTION_OFF 48
 #define avatarSeated 49

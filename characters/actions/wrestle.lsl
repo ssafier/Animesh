@@ -102,13 +102,14 @@ integer avatar_strength(string json) {
   set_max(strength, (integer) llJsonGetValue(json, ["sml"]));
   string rp =  llJsonGetValue(json, ["rp"]);
   switch ((integer) llJsonGetValue(rp,["strength"])) {
-  case 1: strength = 200; break;
-  case 3: set_max(strength, 1000); break;
-  case 4: set_max(strength, 5000); break;
-  case 5: set_max(strength, 10000); break;
-  case 6: set_max(strength, 20000); break;
-  case 7: set_max(strength, 100000); break;
-  default: break;
+  case 0:
+  case 1: { strength = 200; break; }
+  case 3: { set_max(strength, 1000); break; }
+  case 4: { set_max(strength, 5000); break; }
+  case 5: { set_max(strength, 10000); break; }
+  case 6: { set_max(strength, 12000); break; }
+  case 7: { set_max(strength, 20000); break; }
+  default: { set_max(strength, 100000); break; }
   }
   string sps = llJsonGetValue(json,["sps"]);
   if (sps != "") {

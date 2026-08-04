@@ -32,7 +32,7 @@ default {
 	"\", \"text\":\"" + (string) params[2] + ".\"}";
       msgdefault = (string) params[3];
       active = TRUE;
-      http_key = llHTTPRequest("http://scott-safier.com/RP/chat",[HTTP_METHOD, "POST", HTTP_MIMETYPE, "application/json"], json);
+      http_key = llHTTPRequest(SERVER + "RP/chat",[HTTP_METHOD, "POST", HTTP_MIMETYPE, "application/json"], json);
       break;
     }
     default: break;
