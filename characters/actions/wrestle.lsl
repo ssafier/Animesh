@@ -26,6 +26,8 @@ integer wins;
 integer losses;
 string msgdefault;
 
+integer prior_flags;
+
 string create_fight_description() {
   string text = "You are engaged in a fight involving boxing, wrestling and martial arts.";
   if (wins > 0 || losses > 0) {
@@ -339,33 +341,49 @@ default {
 	POP(temp);
 	r2 = (rotation) temp;
 	llMessageLinked(avatar_prim, 2,(string)p2 + "|" + (string)(r2 * r1), current_avatar);
+	integer skip_test = FALSE;
+	integer force_chat = FALSE;
+	PEEK(temp);
 	integer flags = afCache | afStopAll;
-	if (llFrand(1.0) <= probability_of_win) {
-	  flags = flags | afSwap;
-	  wins++;
-	  string s = "win-" + (string) ((integer) llFrand(quotes) + 1);
-	  if ((llGetTime() - last_chat)  > 15) {
-	    string d = llLinksetDataRead(animation+"-win");
-	    last_chat = llGetTime();
-	    llMessageLinked(LINK_THIS, CHATBOT,
-			    "*" + chatString(d) + "*|"  +
-			    avdesc + "|" + create_fight_description() + "|" +
-			    chatString(llLinksetDataRead(s)),
-			    current_avatar);
-	  }
-	} else {
-	  string d = llLinksetDataRead(animation+"-loss");
-	  losses++;
-	  string s = "defeat-" + (string) ((integer) llFrand(quotes) + 1);
-	  if ((llGetTime() - last_chat)  > 15) {
-	    last_chat = llGetTime();
-	    llMessageLinked(LINK_THIS, CHATBOT,
-			    "*" + chatString(d) + "*|"  +
-			    avdesc + "|" + create_fight_description() + "|" +
-			    chatString(llLinksetDataRead(s)),
-			    current_avatar);
+	if (temp == "SEQUENCE") {
+	  POP(temp);
+	  PEEK(temp);
+	  if (temp != "<root node>") {
+	    skip_test = TRUE;
+	    flags = prior_flags;
+	  } else {
+	    force_chat = TRUE;
 	  }
 	}
+	if (skip_test == FALSE) {
+	  if (llFrand(1.0) <= probability_of_win) {
+	    flags = flags | afSwap;
+	    wins++;
+	    string s = "win-" + (string) ((integer) llFrand(quotes) + 1);
+	    if ((llGetTime() - last_chat)  > 15 || force_chat) {
+	      string d = llLinksetDataRead(animation+"-win");
+	      last_chat = llGetTime();
+	      llMessageLinked(LINK_THIS, CHATBOT,
+			      "*" + chatString(d) + "*|"  +
+			      avdesc + "|" + create_fight_description() + "|" +
+			      chatString(llLinksetDataRead(s)),
+			      current_avatar);
+	    }
+	  } else {
+	    string d = llLinksetDataRead(animation+"-loss");
+	    losses++;
+	    string s = "defeat-" + (string) ((integer) llFrand(quotes) + 1);
+	    if ((llGetTime() - last_chat)  > 15 || force_chat) {
+	      last_chat = llGetTime();
+	      llMessageLinked(LINK_THIS, CHATBOT,
+			      "*" + chatString(d) + "*|"  +
+			      avdesc + "|" + create_fight_description() + "|" +
+			      chatString(llLinksetDataRead(s)),
+			      current_avatar);
+	    }
+	  }
+	}
+	if (force_chat) prior_flags = flags;
 	llMessageLinked(LINK_THIS, doAnimations,
 			animation + "|" + (string)flags, current_avatar);
       }
