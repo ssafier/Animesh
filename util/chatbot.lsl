@@ -138,7 +138,7 @@ default {
 	if (llSubStringIndex(msg, (string) action_keys[i]) == 0) idx = i;
       }
       // message is in action keys.
-      if (iidx != -1) {
+      if (idx != -1) {
 	llMessageLinked(LINK_THIS, CHAT_ACTION, msg + "|" + llLinksetDataRead((string) avatars[index] + "-desc"), xyzzy);
 	return;
       }
