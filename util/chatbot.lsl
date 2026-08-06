@@ -3,6 +3,9 @@
 
 integer avatar_handle;
 integer use_chatbot;
+
+#define STRIDE 3
+// key avdesc scenedesc
 list avatars;
 
 string create_avatar_description(key avi, string json) {
@@ -93,22 +96,27 @@ default {
   link_message(integer from, integer chan, string msg, key xyzzy) {
     switch(chan) {
     case RegisterChatter: {
-      if (use_chatbot = llSameGroup(xyzzy)) {
-	avatars = avatars + [xyzzy, create_avatar_description(xyzzy, msg)];
+      if (llSameGroup(xyzzy)) {
+	if (avatars == []) use_chatbot = TRUE;
+	avatars = avatars + [xyzzy];
 	llListenControl(avatar_handle, TRUE);
       } else {
-	avatars = avatars + [xyzzy, ""];
+	avatars = avatars + [xyzzy];
       }
+      llLinksetDataWrite((string) xyzzy + "-desc", create_avatar_description(xyzzy, msg));
+      llLinksetDataWrite((string) xyzzy + "-scene",  "%s is chatting with you.");
       break;
     }
     case CHATBOT_GREET: {
       integer index = llListFindList(avatars, [xyzzy]);
       if (index != -1) {
-	string avdesc = (string) avatars[index + 1];
+	string avdesc = llLinksetDataRead((string) xyzzy + "-desc");
+	string scene = llLinksetDataRead((string) xyzzy + "-scene");
 	index = llSubStringIndex(msg, "|");
 	llMessageLinked(LINK_THIS, CHATBOT,
+			"[" + llGetDisplayName(xyzzy) + "] " +
 			"*" + chatString((string) llGetSubString(msg, 0, index - 1), xyzzy) + "*|" +
-			avdesc + "|You are arriving.|" + 
+			avdesc + "|" + chatString(scene, xyzzy) + "|" + 
 			chatString((string) llGetSubString(msg, index + 1, - 1), xyzzy),
 			xyzzy);
 	break;
@@ -117,25 +125,32 @@ default {
     default: break;
     }
   }
-
+  
   listen(integer chan, string name, key xyzzy, string msg) {
     integer index = llListFindList(avatars, [xyzzy]);
     if (index != -1) {
       list action_keys = llParseString2List(llLinksetDataRead("action-keys"), ["|"], []);
       integer len = llGetListLength(action_keys);
-      integer index = -1;
+      integer idx = -1;
       integer i;
-      for (i = 0; index == -1 && i < len; i++) {
-	if (llSubStringIndex(msg, (string) action_keys[i]) == 0) index = i;
+      // find a message in the action keys
+      for (i = 0; idx == -1 && i < len; i++) {
+	if (llSubStringIndex(msg, (string) action_keys[i]) == 0) idx = i;
       }
-      if (index != -1) {
-	llMessageLinked(LINK_THIS, CHAT_ACTION, msg, xyzzy);
+      // message is in action keys.
+      if (iidx != -1) {
+	llMessageLinked(LINK_THIS, CHAT_ACTION, msg + "|" + llLinksetDataRead((string) avatars[index] + "-desc"), xyzzy);
 	return;
       }
       if (use_chatbot) {
-	string avdesc = (string) avatars[index + 1];
+	string avdesc = llLinksetDataRead((string) xyzzy + "-desc");
+	string scene = llLinksetDataRead((string) xyzzy + "-scene");
+	string defaultstr = llLinksetDataRead("chat-default");
+	if (defaultstr = "") defaultstr = "I'm ignoring you.";
+	llLinksetDataWrite("chat-default", "");
 	llMessageLinked(LINK_THIS, CHATBOT,
-			msg + "|" + avdesc + "|" +chatString(" %s is talking to you.", xyzzy) +  "|I'm ignoring you.",
+			"[" + llGetDisplayName(xyzzy) + "] " + llEscapeURL(msg) + "|" +
+			avdesc + "|" +chatString(scene, xyzzy) +  "|" + defaultstr,
 			xyzzy);
       }
     }

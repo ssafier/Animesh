@@ -20,7 +20,6 @@ float probability_of_win;
 integer handle;
 
 // chatbot
-string avdesc;
 float last_chat;
 integer wins;
 integer losses;
@@ -36,65 +35,6 @@ string create_fight_description() {
   return text;
 }
 
-create_avatar_description(key avi, string json) {
-  avdesc = "  Your opponent is "+ llGetDisplayName(avi) +".";
-  string rp =  llJsonGetValue(json, ["rp"]);
-  string sps = llJsonGetValue(json,["sps"]);
-  string sml = llJsonGetValue(json, ["sml"]);
-  integer strength = 1;
-  integer str = -1;
-  if (sml != JSON_INVALID && sml != JSON_NULL) {
-    str = (integer) sml;
-  }
-  if (sps != JSON_INVALID && sps != JSON_NULL) {
-    string result = llJsonGetValue(sps,["total"]);
-    if (result != JSON_NULL && result != JSON_INVALID) {
-      if ((integer) result > str) str = (integer) result;
-    }
-  }
-  if (str >= 50000) strength = 7; else
-    if (str >= 20000) strength = 6; else
-      if (str >= 15000) strength = 5; else
-	if (str >= 10000) strength = 4; else
-	  if (str >= 5000) strength = 3; else
-	    if (str >= 1000) strength = 2; else
-	      if (str >= 300) strength = 1;
-  str = (integer) llLinksetDataRead("strength");
-  integer me;
-  if (str >= 50000) me = 7; else
-    if (str >= 20000) me = 6; else
-      if (str >= 15000) me = 5; else
-	if (str >= 10000) me = 4; else
-	  if (str >= 5000) me = 3; else
-	    if (str >= 1000) me = 2; else
-	      if (str >= 300) me = 1;
-
-  list text = StrengthText;
-  if (rp != JSON_INVALID && rp != JSON_NULL) {
-    string result = llJsonGetValue(rp,["proto"]);
-    if (result != JSON_NULL && result != JSON_INVALID) {
-      avdesc = avdesc + "  They have the powers of " + result;
-      result = llJsonGetValue(rp,["strength"]);
-      if (result != JSON_NULL && result != JSON_INVALID) {
-	avdesc = avdesc + " and a  strength of " + (string) text[((integer) result) - 1] +
-	  " compared to your strength of " + (string) text[me];
-      }
-      avdesc = avdesc + ".";
-      result = llJsonGetValue(rp, ["alignment"]);
-      if (result != JSON_NULL && result != JSON_INVALID) {
-	list align = AlignmentText;
-	avdesc = avdesc + " Their alignment is " + (string) align[((integer) result) - 1];
-      }
-      return;
-    } else {
-      result = llJsonGetValue(rp,["strength"]);
-      if (result != JSON_NULL && result != JSON_INVALID) {
-	strength = (integer) result;
-      }
-    }
-  }
-  avdesc = avdesc + "  They are " + (string) text[strength - 1] + " compared to you " + (string) text[me] + ".";
-}
 
 integer max(integer a,integer b) { if (a > b) return a; return b; }
 #define set_max(a, b) a = max(a, b)
@@ -256,12 +196,9 @@ default {
 	chan != returnLeaf) return;
     switch (chan) {
     case WRESTLE: {
-      handle = llListen(0, "", current_avatar = xyzzy, "");
-      integer index = llSubStringIndex(msg, "|");
-      string avatar_json = llGetSubString(msg, index + 1, -1);
+      string avatar_json = llLinksetDataRead((string) xyzzy);
       integer strength = avatar_strength(avatar_json);
-      create_avatar_description(current_avatar, avatar_json);
-      index = strength2index(strength) * 5;
+      integer index = strength2index(strength) * 5;
 
       quotes = index + 4;
 
@@ -272,6 +209,7 @@ default {
     }
     case ACTION_OFF: {
       string msg;
+      string avdesc = llLinksetDataRead((string) xyzzy + "-desc");
       if (wins == 0) {
 	  llMessageLinked(LINK_THIS, CHATBOT,
 			  "*you are defeated*|" + avdesc +
@@ -288,11 +226,11 @@ default {
 			"|The fight is over and you respond based on wins and losses|Good fight.",
 			current_avatar);
       }
+      current_avatar = NULL_KEY;
       llMessageLinked(LINK_THIS, stopSequence, "", NULL_KEY);
       llMessageLinked(LINK_THIS, resetAnimationState, "", current_avatar);
       llMessageLinked(LINK_THIS, menuOff, "", current_avatar);
       current_avatar = NULL_KEY;
-      llListenRemove(handle);
       llMessageLinked(LINK_THIS, WRESTLE_DONE, "", NULL_KEY);
       break;
     }
@@ -312,10 +250,13 @@ default {
 	currentLinkNumber++;
       }
       llSetLinkAlpha(avatar_prim,1,ALL_SIDES);
+      llLinksetDataWrite((string)(current_avatar = xyzzy) + "-scene",
+			 create_fight_description());
       llMessageLinked(LINK_THIS, getLeaf, (string) returnLeaf + "|Ready", current_avatar);
       last_chat = llGetTime();
+      
       llMessageLinked(LINK_THIS, CHATBOT,
-		      "*approaching*|" + avdesc +
+		      "*approaching*|" + llLinksetDataRead((string) xyzzy + "-desc")  +
 		      "|You have been challenged to a fight|Game on.",
 		      current_avatar);
       break;
@@ -355,6 +296,10 @@ default {
 	    force_chat = TRUE;
 	  }
 	}
+	
+	llLinksetDataWrite("chat-default",
+			   llLinksetDataRead("smack-"+(string)((integer) llFrand(25) + 1)));
+	string avdesc = llLinksetDataRead((string) xyzzy + "-desc");
 	if (skip_test == FALSE) {
 	  if (llFrand(1.0) <= probability_of_win) {
 	    flags = flags | afSwap;
@@ -365,8 +310,8 @@ default {
 	      last_chat = llGetTime();
 	      llMessageLinked(LINK_THIS, CHATBOT,
 			      "*" + chatString(d) + "*|"  +
-			      avdesc + "|" + create_fight_description() + "|" +
-			      chatString(llLinksetDataRead(s)),
+			      avdesc + "|" + llLinksetDataRead((string) current_avatar + "-scene")
+			      + "|" + chatString(llLinksetDataRead(s)),
 			      current_avatar);
 	    }
 	  } else {
@@ -377,8 +322,8 @@ default {
 	      last_chat = llGetTime();
 	      llMessageLinked(LINK_THIS, CHATBOT,
 			      "*" + chatString(d) + "*|"  +
-			      avdesc + "|" + create_fight_description() + "|" +
-			      chatString(llLinksetDataRead(s)),
+			      avdesc + "|" + llLinksetDataRead((string) current_avatar + "-scene")
+			      + "|" + chatString(llLinksetDataRead(s)),
 			      current_avatar);
 	    }
 	  }
@@ -393,31 +338,5 @@ default {
     default: break;
     }
   }
-
-  listen(integer chan, string name, key xyzzy, string msg) {
-    switch(llToLower(msg)) {
-    case "menu": {
-      llMessageLinked(LINK_THIS, getLeaf, (string) returnLeaf + "|<root node>", current_avatar);
-      break;
-    }
-    case "stop": {
-      llMessageLinked(LINK_THIS, stopSequence, "", NULL_KEY);
-      llUnSit(current_avatar);
-      break;
-    }
-    case "help": {
-        llInstantMessage(current_avatar, "Allow adjusting your position by pressing FORWARD and BACK keys at the same time");
-	llInstantMessage(current_avatar, "Adjust your position using Pgup/Pgdn, Up/Down arrow, and shift-left/right arrow keys\nDisable by pressing Pgup and Pgdn keys at the same time");
-	break;
-    }
-    default: {
-      if ((llGetTime() - last_chat)  < 10) return;
-      llMessageLinked(LINK_THIS, CHATBOT,
-		      msg + "|"  + avdesc + "|" + create_fight_description() + "|" +
-		      llLinksetDataRead("smack-"+(string)((integer) llFrand(25) + 1)),
-		      current_avatar);
-      break;
-    }
-    }
-  }
 }
+

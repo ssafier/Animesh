@@ -92,6 +92,8 @@
 #define CHAT_ACTION 31
 #define CHATBOT_GREET 32
 #define ACTOR_REGISTER 33
+#define CHATBOT_SCENE 34
+#define GROUP_CHAT 40
 
 #define ACTION_OFF 48
 #define avatarSeated 49

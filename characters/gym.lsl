@@ -29,7 +29,6 @@ integer status;
 string animation;
 
 key avatar;
-string avatar_json;
 
 integer sml;
 integer rp;
@@ -174,7 +173,7 @@ move_to_target() {
   llMoveToTarget(current_target_pos, g_tau); 
 }
 
-parse_json() {
+parse_json(string avatar_json) {
   sml = (integer) llJsonGetValue(avatar_json, ["sml"]);
   string rp_json = llJsonGetValue(avatar_json, ["rp"]);
   string sps_json = llJsonGetValue(avatar_json, ["sps"]);
@@ -232,7 +231,7 @@ string calculateGreeting() {
 default {
   on_rez(integer x) {
     if (x == 0) return;
-    llLinksetDataWrite("action-keys","let's wrestle");
+    llLinksetDataWrite("action-keys","let's wrestle|listen to");
   }
   
   link_message(integer from, integer chan, string msg, key xyzzy) {
@@ -247,10 +246,10 @@ default {
       --len;
       llStopObjectAnimation((string) anims[len]);
     }
-
-    avatar_json = (string) params[1];
+    string avatar_json;
+    llLinksetDataWrite((string) avatar, avatar_json = (string) params[1]);
     llMessageLinked(LINK_THIS, RegisterChatter, avatar_json, avatar);
-    parse_json();
+    parse_json(avatar_json);
     wander_state = 0;
 
     llSetStatus(STATUS_PHYSICS, TRUE);
@@ -333,8 +332,13 @@ state wander {
 
   link_message(integer from, integer chan, string msg, key xyzzy) {
     if (chan != CHAT_ACTION) return;
-    switch (llToLower(msg)) {
-    case "let's wrestle": {
+    integer index = llSubStringIndex(msg, "|");
+    integer len = llStringLength(msg);
+    string message = llGetSubString(msg, 0, index - 1);
+    string avdesc;
+    if (index != len) avdesc = llGetSubString(msg, index + 1, -1);
+    message = llToLower(message);
+    if (llSubStringIndex(message, "let's wrestle") != -1) {
       if (is_wrestling) return;
       if (animation != "") llStopObjectAnimation(animation);
       if (llLinksetDataRead("walk-loop") == "0") {
@@ -342,11 +346,15 @@ state wander {
       }
       llStopMoveToTarget();
       is_wrestling = TRUE;
-      // TODO register here too
-      llMessageLinked(LINK_THIS, WRESTLE, avatar_json, avatar);
+      string avatar_json = llLinksetDataRead((string) xyzzy);
+      llMessageLinked(LINK_THIS, WRESTLE, avatar_json, xyzzy);
       state wait;
     }
-    default: break;
+    if (llSubStringIndex(message, "listen to ") == 0) {
+      llMessageLinked(LINK_THIS, GROUP_CHAT,
+		      llStringTrim(llGetSubString(message,10, -1), STRING_TRIM),
+		      xyzzy);
+      return;
     }
   }
   
@@ -386,7 +394,6 @@ state wander {
   timer() {
     vector my_pos = llGetPos();
     float dist = llVecDist(my_pos, current_target_pos);
-
     if (is_following) { // target set in sensor
       wander_state = 1;
       if (dist > 2.5) {
@@ -474,9 +481,6 @@ state wander {
   }
   
   listen(integer chan, string name, key xyzzy, string msg) {
-    if (chan == 0) {
-      if (xyzzy != avatar) return;
-    }
     if (llListFindList(filters,[xyzzy]) == -1) return;
     list params = llParseString2List(msg, ["|"], []);
     switch((string) params[0]) {
@@ -525,8 +529,10 @@ state wait {
     default: break;
     }      
   }
+
   link_message(integer from, integer chan, string msg, key xyzzy) {
     if (chan != WRESTLE_DONE) return;
+    is_wrestling = FALSE;
     while (llGetListLength(llGetObjectAnimationNames())) llSleep(0.1);
     if (animation != "") llStartObjectAnimation(animation);
     state wander;

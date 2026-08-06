@@ -7,18 +7,19 @@ use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\I18n\Time;
 use Psr\Log\LoggerInterface;
 
-use App\Models\Characters;
+use App\Controllers\Rpbase;
+
 use App\Models\Visitors;
+use App\Models\Characters;
 use App\Models\ChatLogs;
     
 use App\Entities\Visitor;
 use App\Entities\Npc;
 use App\Entities\ChatLog;
 
-class Gemini extends BaseController
+class Gemini extends Rpbase
 {
     protected $helpers = ['url'];
-    private $visitors;
     private $chats;
     private $animesh;
     
@@ -27,11 +28,64 @@ class Gemini extends BaseController
         ResponseInterface $response,
         LoggerInterface $logger) {
         parent::initController($request, $response, $logger);
-        $this->visitors = new Visitors();
         $this->chats = new ChatLogs();
         $this->animesh = new Characters();
     }
  
+    public function group() {
+        $json = $this->request->getJSON(true); // Get JSON as an associative array
+        if (!$json) {
+            log_message('debug', 'invalid json');
+            return $this->response-setJSON(array('status' => 'error', 'type' => 'invalid json'));;
+        }
+        $result = $this->visitors->where('avi =',$json['avatar'])->findAll();
+        if (!$result || count($result) == 0) {
+            log_message('error', 'no visitor');
+            return;
+        }
+        $avatar = $result[0];
+        $result = $this->visitors->where('avi =',$json['toadd'])->findAll();
+        if (!$result || count($result) == 0) {
+            log_message('error', 'no visitor');
+            return;
+        }
+        $toadd = $result[0];
+        $result = $this->animesh->where('animesh =',$json['npc'])->findAll();
+        if (!$result || count($result) == 0) {
+            log_message('error', 'no character');
+            return;
+        }
+        $npc = $result[0];
+        $conditions = array('avatar' => $avatar->id,
+                            'animesh' => $npc->id);
+        $result = $this->chats->where($conditions)->findAll();
+        $session =  $result[0];
+        $InteractionId = $session->interaction_id;
+        $conditions = array('avatar' => $toadd->id,
+                            'animesh' => $npc->id);
+        $result = $this->chats->where($conditions)->findAll();
+        if ($result && count($result) > 0) {
+            $session = $result[0];
+            if ($session->interaction_id != $InteractionId) {
+                $session->interaction_id = $InteractionId;
+                $this->chats->update( $session->id, $session);
+            }
+        } else {
+            $session = new \App\Entities\ChatLog();
+            $session->avatar = $toadd->id;
+            $session->animesh = $npc->id;
+            $session->interaction_id = $InteractionId;
+            $this->chats->insert($session);
+        }
+
+        $r = array();
+        $r['status'] = 'ok';
+        $r['sml'] = $this->getSML($json['toadd']);
+        $r['rp'] = $this->getRP($json['toadd']);
+        $r['sps'] = $this->getSPS($json['toadd']);
+        return $this->response->setJSON($r);		   
+    }
+
     public function chat() {
         $json = $this->request->getJSON(true); // Get JSON as an associative array
         if (!$json) {
@@ -81,7 +135,7 @@ class Gemini extends BaseController
         // godaddy is stripping the header below, so pass key this way
         $url    = "https://generativelanguage.googleapis.com/v1beta/interactions?key=" . trim($apiKey);
         $systemInstruction = 
-            'Keep your responses concise and punchy.   If the user text is wrapped in astericks (e.g. *punch*), this is a physical action taken against you.  React to the physical action in character.\n' .
+            'Keep your responses concise and punchy.   If the user text is wrapped in astericks (e.g. *punch*), this is a physical action taken against you.  React to the physical action in character, but do not use astericks in your response.  The name of the person chatting is in square-brackets at the beginning of the message.  Do not use square-brackets in your response.\n' .
             $npc->description . '\n ' . $json['avatar-desc'] . '\n' . $json['text'] ;
 
         // Build the Interactions payload
