@@ -191,42 +191,6 @@ parse_json(string avatar_json) {
   }
 }
 
-string calculateGreeting() {
-  integer g = 0;
-  if (sml > 0) {
-    if (sml > 20000)
-      g = 6;
-    else if (sml > 16500)
-      g = 5;
-    else if (sml > 10000)
-      g = 4;
-    else if (sml > 5000)
-      g = 3;
-    else if (sml > 1000)
-      g = 2;
-    else
-      g = 1;
-  }
-  if (rp > 0 && rp > g) g = rp;
-  if (sps > 0) {
-    integer h = 0;
-    if (sps > 20000)
-      h = 6;
-    else if (sps > 16500)
-      h = 5;
-    else if (sps > 10000)
-      h = 4;
-    else if (sps > 5000)
-      h = 3;
-    else if (sps > 1000)
-      h = 2;
-    else
-      h = 1;
-    if (h > g) g = h;
-  }
-  if (g > 0) g--;
-  return llLinksetDataRead("hello-"+(string) (g * 5 + (integer) llFrand(5) + 1));
-}
 
 default {
   on_rez(integer x) {
@@ -279,7 +243,7 @@ default {
     llSetTimerEvent(0);
     clear_animation();
     llStartObjectAnimation(animation = llLinksetDataRead("stand"));
-    llMessageLinked(LINK_THIS, CHATBOT_GREET, reason + "|" + calculateGreeting(),
+    llMessageLinked(LINK_THIS, CHATBOT_GREET, reason + "|Hi",
 		    avatar);
     state wander;
   }
