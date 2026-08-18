@@ -52,7 +52,7 @@ class Gemini extends Rpbase
         $toadd = $result[0];
         $result = $this->animesh->where('animesh =',$json['npc'])->findAll();
         if (!$result || count($result) == 0) {
-            log_message('error', 'no character');
+            log_message('error', 'no character '.$json['npc']);
             return;
         }
         $npc = $result[0];
@@ -100,7 +100,7 @@ class Gemini extends Rpbase
         $avatar = $result[0];
         $result = $this->animesh->where('animesh =',$json['npc'])->findAll();
         if (!$result || count($result) == 0) {
-            log_message('error', 'no character');
+            log_message('error', 'no character '.$json['npc']);
             return;
         }
         $npc = $result[0];

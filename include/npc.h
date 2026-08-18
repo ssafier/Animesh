@@ -11,6 +11,7 @@
 #define NPCs [						\
   "Hulk", GREEN_RAIN,					\
     "Colossus", RAIN,						\
+    "Groot", BLACK_RAIN,						\
     "Ares", RED_RAIN,						\
     "Gladiator", PURPLE_RAIN,					\
     "Conquest", RAIN,						\

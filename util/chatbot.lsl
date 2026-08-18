@@ -96,13 +96,9 @@ default {
   link_message(integer from, integer chan, string msg, key xyzzy) {
     switch(chan) {
     case RegisterChatter: {
-      if (llSameGroup(xyzzy)) {
-	if (avatars == []) use_chatbot = TRUE;
-	avatars = avatars + [xyzzy];
-	llListenControl(avatar_handle, TRUE);
-      } else {
-	avatars = avatars + [xyzzy];
-      }
+      if (avatars == []) use_chatbot = TRUE;
+      avatars = avatars + [xyzzy];
+      llListenControl(avatar_handle, TRUE);
       llLinksetDataWrite((string) xyzzy + "-desc", create_avatar_description(xyzzy, msg));
       llLinksetDataWrite((string) xyzzy + "-scene",  "%s is chatting with you.");
       break;
@@ -114,10 +110,11 @@ default {
 	string scene = llLinksetDataRead((string) xyzzy + "-scene");
 	index = llSubStringIndex(msg, "|");
 	llMessageLinked(LINK_THIS, CHATBOT,
-			"[" + llGetDisplayName(xyzzy) + "] " +
-			"*" + chatString((string) llGetSubString(msg, 0, index - 1), xyzzy) + "*|" +
-			avdesc + "|" + chatString(scene, xyzzy) + "|" + 
-			chatString((string) llGetSubString(msg, index + 1, - 1), xyzzy),
+			llEscapeURL("[" + llGetDisplayName(xyzzy) + "] " +
+				    "*" + chatString((string) llGetSubString(msg, 0, index - 1), xyzzy)) +
+			*|" + llEscapeURL(avdesc) + "|" +
+			llEscapeURL(chatString(scene, xyzzy)) + "|" + 
+			llEscapeURL(chatString((string) llGetSubString(msg, index+1, - 1), xyzzy)),
 			xyzzy);
 	break;
       }

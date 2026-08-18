@@ -1,5 +1,6 @@
 #include "include/animesh.h"
 #include "include/controlstack.h"
+#include "src/animesh/include/npc.h"
 #define noAgents  2
 
 #ifdef DEBUGGING
@@ -53,42 +54,13 @@ integer getNextGreeter() {
 
 default {
   state_entry() {
-    greeters = [
-#ifndef DEBUGGING
-		"Prime", NULL_KEY, NULL_KEY,
-		"Hulk", NULL_KEY, NULL_KEY,
-		"Colossus", NULL_KEY, NULL_KEY,
-		"Ares", NULL_KEY, NULL_KEY,
-		"Gladiator", NULL_KEY, NULL_KEY,
-		"Conquest", NULL_KEY, NULL_KEY,
-		"Gambit", NULL_KEY, NULL_KEY,
-		"Spiderman", NULL_KEY, NULL_KEY,
-		"Snow Symbiote", NULL_KEY, NULL_KEY,
-		"Azazel", NULL_KEY, NULL_KEY,
-		"Firestorm", NULL_KEY, NULL_KEY,
-		"Rogue", NULL_KEY, NULL_KEY,
-		"Northstar", NULL_KEY, NULL_KEY,
-		"Human Torch", NULL_KEY, NULL_KEY,
-		"Ben Grimm", NULL_KEY, NULL_KEY,
-		"Batman", NULL_KEY, NULL_KEY,
-		"Damien Wayne", NULL_KEY, NULL_KEY,
-		"Red Robin", NULL_KEY, NULL_KEY,
-		"Harley Quinn", NULL_KEY, NULL_KEY,
-		"Dark Phoenix", NULL_KEY, NULL_KEY,
-		"Flash", NULL_KEY, NULL_KEY,
-		"Reverse Flash", NULL_KEY, NULL_KEY,
-		"Thor Odinson", NULL_KEY, NULL_KEY,
-		"Ironman", NULL_KEY, NULL_KEY,
-		"Hal Jordan", NULL_KEY, NULL_KEY,
-		"Captain America", NULL_KEY, NULL_KEY,
-		"Lobo", NULL_KEY, NULL_KEY,
-		"Adam Warlock", NULL_KEY, NULL_KEY,
-		"Amazon", NULL_KEY, NULL_KEY,
-		"Red Hulk", NULL_KEY, NULL_KEY,
-		"Invincible", NULL_KEY, NULL_KEY,
-#endif
-		"Omni-Man", NULL_KEY, NULL_KEY
-		];
+    list npcs = NPCs;
+    integer i = 0;
+    integer len = llGetListLength(npcs);
+    greeters = [];
+    for (i = 0; i < len; i += 2) {
+      greeters = greeters + [(string) npcs[i], NULL_KEY,NULL_KEY];
+    }
     current_greeter = 0;
     greeter_len = llGetListLength(greeters);
     handle = llListen(0x922f52 + 1, "", TELEPORTER, "");

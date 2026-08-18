@@ -19,7 +19,9 @@ integer wins;
 integer losses;
 string msgdefault;
 
+integer in_sequence;
 integer prior_flags;
+integer sequence_count;
 
 string create_fight_description() {
   string text = "You are engaged in a fight involving boxing, wrestling and martial arts.";
@@ -278,7 +280,8 @@ default {
       vector p2;
       rotation r1;
       rotation r2;
-      debug("leaf "+msg);
+      integer force_menu = TRUE;
+      
       GET_CONTROL;
       POP(temp);
       if (temp != "STRING") {
@@ -292,29 +295,34 @@ default {
 	POP(temp);
 	r2 = (rotation) temp;
 	llMessageLinked(avatar_prim, 2,(string)p2 + "|" + (string)(r2 * r1), current_avatar);
-	integer skip_test = FALSE;
-	integer force_chat = FALSE;
+	integer seq = !in_sequence;
 	PEEK(temp);
 	integer flags = afCache | afStopAll;
 	if (temp == "SEQUENCE") {
+	  in_sequence = TRUE;
 	  POP(temp);
 	  PEEK(temp);
-	  if (temp != "<root node>" || llSubStringIndex(temp,"[") == 0) {
-	    skip_test = TRUE;
+	  PUSH("SEQUENCE");
+	  if (!seq) {
 	    flags = prior_flags;
+	    ++sequence_count;
+	    if (sequence_count < 10) force_menu = FALSE;
 	  } else {
-	    force_chat = TRUE;
+	    sequence_count = 0;
 	  }
+	} else {
+	  in_sequence = FALSE;
+	  sequence_count = 0;
 	}
 	
 	llLinksetDataWrite("chat-default","This fight is below me.");
 	string avdesc = llLinksetDataRead((string) xyzzy + "-desc");
-	if (skip_test == FALSE) {
+	if (!in_sequence || seq) {
 	  if (llFrand(1.0) <= probability_of_win) {
 	    flags = flags | afSwap;
 	    wins++;
 	    string s = "win-" + (string) ((integer) llFrand(quotes) + 1);
-	    if ((llGetTime() - last_chat)  > 15 || force_chat) {
+	    if ((llGetTime() - last_chat)  > 15) {
 	      string d = llLinksetDataRead(animation+"-win");
 	      last_chat = llGetTime();
 	      llMessageLinked(LINK_THIS, CHATBOT,
@@ -327,7 +335,7 @@ default {
 	    string d = llLinksetDataRead(animation+"-loss");
 	    losses++;
 	    string s = "defeat-" + (string) ((integer) llFrand(quotes) + 1);
-	    if ((llGetTime() - last_chat)  > 15 || force_chat) {
+	    if ((llGetTime() - last_chat)  > 15) {
 	      last_chat = llGetTime();
 	      llMessageLinked(LINK_THIS, CHATBOT,
 			      "*" + chatString(d) + "*|"  +
@@ -337,11 +345,13 @@ default {
 	    }
 	  }
 	}
-	if (force_chat) prior_flags = flags;
+	prior_flags = flags;
 	llMessageLinked(LINK_THIS, doAnimations,
 			animation + "|" + (string)flags, current_avatar);
-      }
-      llMessageLinked(LINK_THIS, getLeaf, (string) returnLeaf + "|<root node>", current_avatar);
+      } 
+
+      if (force_menu)
+	llMessageLinked(LINK_THIS, getLeaf, (string) returnLeaf + "|<root node>", current_avatar);
       break;
     }
     default: break;
