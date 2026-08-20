@@ -182,7 +182,7 @@ state serve_data {
     if (node != -1) {
       string peek;
       PEEK(peek);
-      if (peek != "SEQUENCE")
+      if (llSubStringIndex(peek,"SEQUENCE") != 0)
 	llMessageLinked(LINK_THIS, stopSequence, "", NULL_KEY);
       node *= LEAF_STRIDE;
       list n = animesh_coord(llList2List(leaves, node, node+LEAF_STRIDE-1));

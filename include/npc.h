@@ -9,9 +9,12 @@
 #define BLUE_RAIN 8
 
 #define NPCs [						\
-  "Hulk", GREEN_RAIN,					\
-    "Colossus", RAIN,						\
+    "Dr Doom", BLACK_RAIN,						\
+    "Venom", BLACK_RAIN,						\
+    "Titan", RAIN,							\
     "Groot", BLACK_RAIN,						\
+  "Green Goblin", GREEN_RAIN,							\
+  "Hulk", GREEN_RAIN,					\
     "Ares", RED_RAIN,						\
     "Gladiator", PURPLE_RAIN,					\
     "Conquest", RAIN,						\

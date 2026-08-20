@@ -18,6 +18,7 @@ integer sequence_index;
 integer in_sequence_index;
 string control_states;
 key controlling_avi;
+integer count;
 
 // ------------------------------------------
 integer findSequence(string s) {
@@ -61,6 +62,7 @@ default {
       break;
     }
     case stopSequence: {
+      count = 0;
       llSetTimerEvent(0);
       break;
     }
@@ -74,12 +76,13 @@ default {
 	llOwnerSay("Cannot find sequence "+name);
 	return;
       }
+      count = 1;
       UPDATE_NEXT(getLeaf);
       control_states = rest;
       debug("rest "+rest);
       controlling_avi = xyzzy;
       debug("Animation "+sequenceAnimation(sequence_index, in_sequence_index));
-      PUSH("SEQUENCE");
+      PUSH("SEQUENCE-1");
       PUSH(sequenceAnimation(sequence_index, in_sequence_index));
       debug(sequenceTime(sequence_index, in_sequence_index));
       llSetTimerEvent(sequenceTime(sequence_index, in_sequence_index));
@@ -97,8 +100,9 @@ default {
     debug("timer "+(string) in_sequence_index + " " + (string) sequenceCount(sequence_index) + " " + (string) sequenceLength(sequence_index));
     debug(sequenceAnimation(sequence_index, in_sequence_index));
     debug("control states "+control_states);
+    ++count;
     llMessageLinked(LINK_THIS, getLeaf,
-		    control_states + "|" + sequenceAnimation(sequence_index, in_sequence_index) + "|SEQUENCE",
+		    control_states + "|" + sequenceAnimation(sequence_index, in_sequence_index) + "|SEQUENCE-"+(string) count,
 		    controlling_avi);
     debug(sequenceTime(sequence_index, in_sequence_index));
     llSetTimerEvent(sequenceTime(sequence_index, in_sequence_index));
