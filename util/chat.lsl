@@ -4,6 +4,10 @@
 #define debug(x)
 #endif
 
+#ifndef OUTPUT
+#define OUTPUT llSay
+#endif
+
 list chatQ;
 key http_key;
 integer active;
@@ -46,10 +50,10 @@ default {
     if (status == 200) {
       string status = llJsonGetValue(body, ["status"]);
       if (status == "ok") {
-	llSay(0, llJsonGetValue(body, ["reply"]));
+	OUTPUT(0, llJsonGetValue(body, ["reply"]));
 	return;
       }
-    }
+    } else llOwnerSay(body);
     llSay(0, msgdefault);
   }
 

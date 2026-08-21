@@ -112,7 +112,7 @@ default {
 	llMessageLinked(LINK_THIS, CHATBOT,
 			llEscapeURL("[" + llGetDisplayName(xyzzy) + "] " +
 				    "*" + chatString((string) llGetSubString(msg, 0, index - 1), xyzzy)) +
-			*|" + llEscapeURL(avdesc) + "|" +
+			"|" + llEscapeURL(avdesc) + "|" +
 			llEscapeURL(chatString(scene, xyzzy)) + "|" + 
 			llEscapeURL(chatString((string) llGetSubString(msg, index+1, - 1), xyzzy)),
 			xyzzy);

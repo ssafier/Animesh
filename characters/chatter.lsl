@@ -1,5 +1,6 @@
 #include "include/animesh.h"
 #include "src/animesh/include/gym.h"
+#include "src/animesh/include/eye-of-ekron.h"
 
 #ifndef debug
 #define debug(x)
@@ -19,140 +20,39 @@ rotation rot;
 
 #define Chat(msg) llSleep(1.5 + llFrand(1.5)); llShout(0, msg);
 
-key await_from;
-string await_str;
-string saying;
-
-respond2Command(key from, string msg) {
-  list chat;
-  debug("command "+(string) from+" "+msg);
-  switch(from) {
-#ifdef CheckBlackAdam
-  case BlackAdam: {
-    switch (msg) {
-    case "ABOMINATION": {
-      debug("black adam abomination");
-      chat = CheckBlackAdam;
-      Chat((string) chat[(integer) llFrand(llGetListLength(chat))]);
-      break;
-    }
-    default: break;
-    }
-    break;
-  }
-#endif
-  case EyeOfEkron: {
-    list params = llParseStringKeepNulls(msg,["|"],[]);
-    switch ((string) params[0]) {
-    case "CHAT": {
-      await_from = (key)(string)params[1];
-      await_str = (string) params[2];
-      saying = (string) params[3];
-      //llOwnerSay(msg);
-      if (await_from == NULL_KEY) {
-	llSleep(5);
-	Chat(saying);
-	saying = "";
-      }
-      break;
-    }
-    default: break;
-    }
-    break;
-  }
-  default: break;
-  }
-}
-
-respond2Default(key from, string msg) {
-  list chat;
-  switch(from) {
-#ifdef RespondAbomination
-  case Abomination: { // this is black adam
-    if (msg == "Any wimp wanna wrestle?") {
-      if (llFrand(1.0) > 0.5) {
-	key superman = KalEl;
-	llSay((integer) ("0x" + llGetSubString((string) superman, -6, -1)), "ABOMINATION");
-      } else {
-	chat = RespondAbomination;
-	Chat((string) chat[(integer) llFrand(llGetListLength(chat))]);
-      }
-    }
-    break;
-  }
-#endif
-#ifdef RespondHulk
-  case Hulk: {
-    break;
-  }
-#endif
-#ifdef RespondKalEl
-  case KalEl: {
-    chat = RespondKalEl;
-    integer index = llListFindList(chat, [msg]);
-    if (index != -1) {
-      Chat((string) chat[index + 1]);
-    }
-    break;
-  }
-#endif
-#ifdef RespondBlackAdam
-  case BlackAdam: {
-    debug("Black Adam");
-    chat = RespondBlackAdam;
-    integer index = llListFindList(chat, [msg]);
-    if (index != -1) {
-      Chat((string) chat[index + 1]);
-    }
-    break;
-  }
-#endif
-  default: break;
-  }
-}
-
 default {
   state_entry() {
     llSetStatus(STATUS_PHYSICS, TRUE);
     llSetStatus(STATUS_ROTATE_X | STATUS_ROTATE_Y, FALSE);
 
     channel = (integer) ("0x"+llGetSubString((string) llGetKey(), -6, -1));
-    handle = llListen(channel, "", NULL_KEY, "");
-    public = llListen(0,"",NULL_KEY,"");
+    handle = llListen(BroadcastChannel, "", NULL_KEY, "");
     llStartObjectAnimation(animation = LEAN);
     list o = llGetPrimitiveParams([PRIM_POSITION, PRIM_ROTATION]);
     pos = (vector) o[0];
     rot = (rotation) o[1];
-    // for conversations
-    await_from = NULL_KEY;
-    saying = await_str = "";
-    llSetTimerEvent(60);
+    llSetTimerEvent(120);
   }
+
   listen(integer chan, string name, key xyzzy, string msg) {
-    if (chan == 0 &&
-	await_from != NULL_KEY &&
-	await_from == xyzzy &&
-	msg == await_str) {
-      Chat(saying);
-      await_from = NULL_KEY;
-      await_str = saying = "";
+    if (chan == BroadcastChannel) {
+      list temp = llParseString2List(msg, ["|"], []);
+      if (llGetObjectName() != (string) temp[3]) return;
+      key avatar = (key) (string) temp[1];
+      string called = llGetDisplayName(avatar);
+      string animesh = (string) temp[2];
+      llSleep(5 + llFrand(3.5));
+      llMessageLinked(LINK_THIS, CHATBOT,
+		      "*A gym-rat " + called + " and " + animesh +
+		      " enter the gym.  You and " + CHATTER +
+		      " are gossiping at the welcome desk.|[" + animesh +
+		      "] to ["+ called + "]  Wow.  Is that Superman and Black Adam?  And he Hulk and Abomination are wrestlers?  Nifty.|Hi?",
+		      avatar);
+
       return;
     }
-
-    list filters = Filters;
-    if (llListFindList(filters, [xyzzy]) == -1) return;
-    switch (chan) {
-    case 0: {
-      respond2Default(xyzzy, msg);
-      break;
-    }
-    case channel: {
-      respond2Command(xyzzy, msg);
-      break;
-    }
-    default: break;
-    }
   }
+
   timer() {
     list o = llGetPrimitiveParams([PRIM_POSITION, PRIM_ROTATION]);
     if ((vector) o[0] != pos || (rotation) o[1] != rot) {

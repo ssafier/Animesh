@@ -1,13 +1,8 @@
 #include "include/animesh.h"
 #include "include/controlstack.h"
 #include "src/animesh/include/npc.h"
+#include "src/animesh/include/eye-of-ekron.h"
 #define noAgents  2
-
-#ifdef DEBUGGING
-#define EyeOfEkron (key) "6456374b-8b39-f398-1233-e4ba1a4a7835"
-#else
-#define EyeOfEkron (key) "d7313cec-6f94-8ea0-6359-c2ad0b922f52"
-#endif
 
 #define TELEPORTER (key) "d3ddc622-7bb6-3a18-8ff6-685fc25d0ee5"
 
@@ -33,6 +28,8 @@ integer greeter_len;
 integer handle;
 key avatar;
 integer saved_index;
+
+list static_greeters;
 
 integer getNextGreeter() {
   integer current = current_greeter;
@@ -64,10 +61,11 @@ default {
     current_greeter = 0;
     greeter_len = llGetListLength(greeters);
     handle = llListen(0x922f52 + 1, "", TELEPORTER, "");
+    static_greeters = AnimeshGreeters;
     llListenControl(handle, FALSE);
   }
   
-  listen(integer chan, string name, key xyzzy, string msg) {
+  listen(integer chan, string ignore, key xyzzy, string msg) {
     llListenControl(handle, FALSE);
     PUSH(msg);
     string name = (string) greeters[saved_index];
@@ -155,6 +153,8 @@ default {
 	  avatar = (key)(string)n[0];
 	  saved_index = x;
 	  llShout(0,"Incoming teleports from " + llGetDisplayName(avatar) + " and " + (string) greeters[x] + ".");
+	  llShout(BroadcastChannel, "INCOMING|"+(string)avatar+"|"+(string) greeters[x] +
+		  "|" + (string) static_greeters[(integer) llFrand(llGetListLength(static_greeters))]);
 	  llRegionSayTo(TELEPORTER, brain, name + "|" + (string) n[0] + "|" + json + "|" + (string) rc1 + "|" + (string) rc2);
 	  return;
 	}
