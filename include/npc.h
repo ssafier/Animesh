@@ -9,7 +9,9 @@
 #define BLUE_RAIN 8
 
 #define NPCs [						\
-    "Dr Doom", BLACK_RAIN,						\
+    "Catwoman", BLACK_RAIN,						\
+    "Silver Surfer", BLUE_RAIN,						\
+    "Peter Parker", RED_RAIN,						\
     "Venom", BLACK_RAIN,						\
     "Titan", RAIN,							\
     "Groot", BLACK_RAIN,						\
