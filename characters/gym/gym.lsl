@@ -1,11 +1,6 @@
 #include "src/animesh/include/animesh.h"
 #include "src/server/include/mpg.h"
-
-#ifdef DEBUGGING
-#define EyeOfEkron (key) "6456374b-8b39-f398-1233-e4ba1a4a7835"
-#else
-#define EyeOfEkron (key) "d7313cec-6f94-8ea0-6359-c2ad0b922f52"
-#endif
+#include "src/animesh/include/eye-of-ekron.h"
 
 #ifndef STEP
 #define STEP 2.0

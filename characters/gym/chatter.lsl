@@ -18,8 +18,6 @@ string animation;
 vector pos;
 rotation rot;
 
-#define Chat(msg) llSleep(1.5 + llFrand(1.5)); llShout(0, msg);
-
 default {
   state_entry() {
     llSetStatus(STATUS_PHYSICS, TRUE);

@@ -10,10 +10,11 @@
 
 #define NPCs [						\
     "Catwoman", BLACK_RAIN,						\
+    "Iron Fist", RING,						\
     "Silver Surfer", BLUE_RAIN,						\
     "Peter Parker", RED_RAIN,						\
     "Venom", BLACK_RAIN,						\
-    "Titan", RAIN,							\
+    "Titan", LIGHTNING,							\
     "Groot", BLACK_RAIN,						\
   "Green Goblin", GREEN_RAIN,							\
   "Hulk", GREEN_RAIN,					\

@@ -276,6 +276,7 @@ state get_target {
     POP(temp);
     target_strength = (integer) temp;
     float prob = ProbabilityWin(target_strength, MY_STRENGTH);
+    wins = losses = 0;
     llSay(Chan+8,"PROB|"+(string) prob);
     list intro;
     if (prob < 0.1) {
