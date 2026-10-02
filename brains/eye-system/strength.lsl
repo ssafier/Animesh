@@ -41,7 +41,7 @@ default {
     list gone_baby = llParseString2List(departing, ["~"], []);
     if (llGetListLength(new_avatars) > 0 ||
 	(llGetListLength(gone_baby) > 0 && llGetListLength(avatars) > 0)) {
-      string request = "http://scott-safier.com/evolution/rank/" + llEscapeURL(llDumpList2String(avatars, ","));
+      string request = SERVER + "/evolution/rank/" + llEscapeURL(llDumpList2String(avatars, ","));
       httpKey = llHTTPRequest(request, [], "");
       avi = xyzzy;
     }
